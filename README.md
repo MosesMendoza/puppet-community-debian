@@ -4,12 +4,16 @@
 This is the packaging project for Deb packages of Puppet.
 
 * The *master* branch means nothing.
-* There is a branch for upstream and pristine tar, these should only be modified when a new upstream version is released
-* There is a branch for lenny, lucid and squeeze currently.
+* There are branches for upstream and pristine tar, these should only be modified when a new upstream version is released
+* There are branches for lenny, lucid and squeeze currently.
+* Branches/builds for other distributions will be added very soon.
 
 Package can built using the following commands (assuming you on the lenny branch):
 
       git  buildpackage  --git-arch=amd64 --git-dist=lenny  -sa
+
+# Prebuilt packages #
+You should be able to find deb of Puppet Labs latest versions of Puppet on [apt.puppetlabs.com](http://apt.puppetlabs.com).
 
 # Issues #
 If you wish to report packaging issues, request or ideas, you are welcome to file issues at our [Red Mine](http://projects.puppetlabs.com/projects/puppet-community-pkg-repo/issues) Project.
