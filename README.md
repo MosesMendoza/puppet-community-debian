@@ -8,7 +8,8 @@ This is the packaging project for Deb packages of Puppet.
 * There is a branch for lenny, lucid and squeeze currently.
 
 Package can built using the following commands (assuming you on the lenny branch):
-     git  buildpackage  --git-arch=amd64 --git-dist=lenny  -sa
+
+      git  buildpackage  --git-arch=amd64 --git-dist=lenny  -sa
 
 
 
