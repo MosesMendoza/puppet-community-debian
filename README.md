@@ -11,6 +11,8 @@ Package can built using the following commands (assuming you on the lenny branch
 
       git  buildpackage  --git-arch=amd64 --git-dist=lenny  -sa
 
+# Issues #
+If you wish to report packaging issues, request or ideas, you are welcome to file issues at our [Red Mine](http://projects.puppetlabs.com/projects/puppet-community-pkg-repo/issues) Project.
 
 
 # License #
