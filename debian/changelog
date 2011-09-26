@@ -1,4 +1,4 @@
-puppet (2.7.3-1ubuntu1) unstable; urgency=low
+puppet (2.7.3-1puppetlabs1) lenny; urgency=low
 
   * Update to 2.7.3
     - Ripped out etckeeper

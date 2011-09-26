@@ -3,8 +3,8 @@ Description: Undocumented upstream changes
  but it might have accumulated changes from several uploads. Please
  check the changelog to (hopefully) learn more on those changes.
 
---- puppet-2.7.1.orig/Rakefile
-+++ puppet-2.7.1/Rakefile
+--- puppet-2.7.3.orig/Rakefile
++++ puppet-2.7.3/Rakefile
 @@ -9,7 +9,7 @@ require 'rspec'
  require "rspec/core/rake_task"
  
@@ -14,16 +14,16 @@ Description: Undocumented upstream changes
  end
  
  Dir['tasks/**/*.rake'].each { |t| load t }
---- puppet-2.7.1.orig/test/lib/puppettest/fakes.rb
-+++ puppet-2.7.1/test/lib/puppettest/fakes.rb
+--- puppet-2.7.3.orig/test/lib/puppettest/fakes.rb
++++ puppet-2.7.3/test/lib/puppettest/fakes.rb
 @@ -1,4 +1,4 @@
 -require File.expand_path(File.join(File.dirname(__FILE__), '../../../lib/puppet/util'))
 +require '/usr/lib/ruby/1.8/puppet/util'
  
  module PuppetTest
    # A baseclass for the faketypes.
---- puppet-2.7.1.orig/lib/puppet/provider/service/init.rb
-+++ puppet-2.7.1/lib/puppet/provider/service/init.rb
+--- puppet-2.7.3.orig/lib/puppet/provider/service/init.rb
++++ puppet-2.7.3/lib/puppet/provider/service/init.rb
 @@ -134,7 +134,15 @@ Puppet::Type.type(:service).provide :ini
    # we just return that; otherwise, we return false, which causes it to
    # fallback to other mechanisms.
@@ -41,8 +41,8 @@ Description: Undocumented upstream changes
    end
  
  end
---- puppet-2.7.1.orig/ext/rack/files/apache2.conf
-+++ puppet-2.7.1/ext/rack/files/apache2.conf
+--- puppet-2.7.3.orig/ext/rack/files/apache2.conf
++++ puppet-2.7.3/ext/rack/files/apache2.conf
 @@ -1,12 +1,4 @@
 -
 -# you probably want to tune these settings
@@ -97,8 +97,8 @@ Description: Undocumented upstream changes
                  Options None
                  AllowOverride None
                  Order allow,deny
---- puppet-2.7.1.orig/lib/puppet/network/rest_authconfig.rb
-+++ puppet-2.7.1/lib/puppet/network/rest_authconfig.rb
+--- puppet-2.7.3.orig/lib/puppet/network/rest_authconfig.rb
++++ puppet-2.7.3/lib/puppet/network/rest_authconfig.rb
 @@ -18,6 +18,7 @@ module Puppet
        { :acl => "/certificate/", :method => :find, :authenticated => false },
        { :acl => "/certificate_request", :method => [:find, :save], :authenticated => false },
