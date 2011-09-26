@@ -1,0 +1,109 @@
+Description: Undocumented upstream changes
+ This patch has been created by dpkg-source during the package build
+ but it might have accumulated changes from several uploads. Please
+ check the changelog to (hopefully) learn more on those changes.
+
+--- puppet-2.7.1.orig/Rakefile
++++ puppet-2.7.1/Rakefile
+@@ -9,7 +9,7 @@ require 'rspec'
+ require "rspec/core/rake_task"
+ 
+ module Puppet
+-    PUPPETVERSION = File.read('lib/puppet.rb')[/PUPPETVERSION *= *'(.*)'/,1] or fail "Couldn't find PUPPETVERSION"
++    PUPPETVERSION = File.read('/usr/lib/ruby/1.8/puppet.rb')[/PUPPETVERSION *= *'(.*)'/,1] or fail "Couldn't find PUPPETVERSION"
+ end
+ 
+ Dir['tasks/**/*.rake'].each { |t| load t }
+--- puppet-2.7.1.orig/test/lib/puppettest/fakes.rb
++++ puppet-2.7.1/test/lib/puppettest/fakes.rb
+@@ -1,4 +1,4 @@
+-require File.expand_path(File.join(File.dirname(__FILE__), '../../../lib/puppet/util'))
++require '/usr/lib/ruby/1.8/puppet/util'
+ 
+ module PuppetTest
+   # A baseclass for the faketypes.
+--- puppet-2.7.1.orig/lib/puppet/provider/service/init.rb
++++ puppet-2.7.1/lib/puppet/provider/service/init.rb
+@@ -134,7 +134,15 @@ Puppet::Type.type(:service).provide :ini
+   # we just return that; otherwise, we return false, which causes it to
+   # fallback to other mechanisms.
+   def statuscmd
+-    (@resource[:hasstatus] == :true) && [initscript, :status]
++      if @resource[:hasstatus] == :true then 
++          # Workaround the fact that initctl status command doesn't return
++          # proper exit codes. Can be removed once LP: #552786 is fixed.
++          if File.symlink?(initscript) && File.readlink(initscript) == "/lib/init/upstart-job" then
++              ['sh', '-c', "LANG=C invoke-rc.d #{File::basename(initscript)} status | grep -q '^#{File::basename(initscript)}.*running'" ]
++          else
++              [initscript, :status ]
++          end
++      end
+   end
+ 
+ end
+--- puppet-2.7.1.orig/ext/rack/files/apache2.conf
++++ puppet-2.7.1/ext/rack/files/apache2.conf
+@@ -1,12 +1,4 @@
+-
+-# you probably want to tune these settings
+-PassengerHighPerformance on
+-PassengerMaxPoolSize 12
+-PassengerPoolIdleTime 1500
+-# PassengerMaxRequests 1000
+-PassengerStatThrottleRate 120
+-RackAutoDetect Off
+-RailsAutoDetect Off
++# Based on http://projects.puppetlabs.com/projects/1/wiki/Using_Passenger
+ 
+ Listen 8140
+ 
+@@ -15,20 +7,32 @@ Listen 8140
+         SSLProtocol -ALL +SSLv3 +TLSv1
+         SSLCipherSuite ALL:!ADH:RC4+RSA:+HIGH:+MEDIUM:-LOW:-SSLv2:-EXP
+ 
+-        SSLCertificateFile      /etc/puppet/ssl/certs/squigley.namespace.at.pem
+-        SSLCertificateKeyFile   /etc/puppet/ssl/private_keys/squigley.namespace.at.pem
+-        SSLCertificateChainFile /etc/puppet/ssl/ca/ca_crt.pem
+-        SSLCACertificateFile    /etc/puppet/ssl/ca/ca_crt.pem
++	SSLCertificateKeyFile /var/lib/puppet/ssl/private_keys/puppetmaster.example.com.pem
++    	SSLCertificateFile /var/lib/puppet/ssl/certs/puppetmaster.example.com.pem
++    	SSLCACertificateFile /var/lib/puppet/ssl/ca/ca_crt.pem
++        SSLCertificateChainFile /var/lib/puppet/ssl/ca/ca_crt.pem
+         # If Apache complains about invalid signatures on the CRL, you can try disabling
+         # CRL checking by commenting the next line, but this is not recommended.
+-        SSLCARevocationFile     /etc/puppet/ssl/ca/ca_crl.pem
++        SSLCARevocationFile     /var/lib/puppet/ssl/ca/ca_crl.pem
++        # Set to require if this puppetmaster doesn't issue certificates
++        # to puppet clients.
++        # NB: this requires SSLCACertificateFile to include the CA cert 
++        #     issuing puppet client certificate.
+         SSLVerifyClient optional
+         SSLVerifyDepth  1
+         SSLOptions +StdEnvVars
+ 
+-        DocumentRoot /etc/puppet/rack/public/
++        # Passenger options that can be set in a virtual host
++        # configuration block.
++        PassengerHighPerformance on
++        PassengerStatThrottleRate 120
++        PassengerUseGlobalQueue on
++        RackAutoDetect Off
++        RailsAutoDetect Off
+         RackBaseURI /
+-        <Directory /etc/puppet/rack/>
++
++        DocumentRoot /usr/share/puppet/rack/puppetmasterd/public
++        <Directory /usr/share/puppet/rack/puppetmasterd/>
+                 Options None
+                 AllowOverride None
+                 Order allow,deny
+--- puppet-2.7.1.orig/lib/puppet/network/rest_authconfig.rb
++++ puppet-2.7.1/lib/puppet/network/rest_authconfig.rb
+@@ -18,6 +18,7 @@ module Puppet
+       { :acl => "/certificate/", :method => :find, :authenticated => false },
+       { :acl => "/certificate_request", :method => [:find, :save], :authenticated => false },
+       { :acl => "/status", :method => [:find], :authenticated => true },
++      { :acl => "/resource", :method => [:find, :save, :search], :authenticated => true },
+     ]
+ 
+     def self.main
