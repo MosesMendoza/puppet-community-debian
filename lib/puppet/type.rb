@@ -9,7 +9,6 @@ require 'puppet/metatype/manager'
 require 'puppet/util/errors'
 require 'puppet/util/log_paths'
 require 'puppet/util/logging'
-require 'puppet/util/cacher'
 require 'puppet/file_collection/lookup'
 require 'puppet/util/tagging'
 
@@ -21,7 +20,6 @@ class Type
   include Puppet::Util::Errors
   include Puppet::Util::LogPaths
   include Puppet::Util::Logging
-  include Puppet::Util::Cacher
   include Puppet::FileCollection::Lookup
   include Puppet::Util::Tagging
 
@@ -228,15 +226,14 @@ class Type
   def self.newparam(name, options = {}, &block)
     options[:attributes] ||= {}
 
-      param = genclass(
-        name,
-      :parent => options[:parent] || Puppet::Parameter,
+    param = genclass(
+      name,
+      :parent     => options[:parent] || Puppet::Parameter,
       :attributes => options[:attributes],
-      :block => block,
-      :prefix => "Parameter",
-      :array => @parameters,
-
-      :hash => @paramhash
+      :block      => block,
+      :prefix     => "Parameter",
+      :array      => @parameters,
+      :hash       => @paramhash
     )
 
     handle_param_options(name, options)
@@ -467,12 +464,6 @@ class Type
   # a property.
   def event(options = {})
     Puppet::Transaction::Event.new({:resource => self, :file => file, :line => line, :tags => tags}.merge(options))
-  end
-
-  # Let the catalog determine whether a given cached value is
-  # still valid or has expired.
-  def expirer
-    catalog
   end
 
   # retrieve the 'should' value for a specified property
@@ -980,7 +971,7 @@ class Type
 
   newmetaparam(:audit) do
     desc "Marks a subset of this resource's unmanaged attributes for auditing. Accepts an
-      attribute name or a list of attribute names.
+      attribute name, an array of attribute names, or `all`.
 
       Auditing a resource attribute has two effects: First, whenever a catalog
       is applied with puppet apply or puppet agent, Puppet will check whether

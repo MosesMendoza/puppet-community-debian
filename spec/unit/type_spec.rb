@@ -1,10 +1,8 @@
 #!/usr/bin/env rspec
 require 'spec_helper'
 
-describe Puppet::Type do
-  it "should include the Cacher module" do
-    Puppet::Type.ancestors.should be_include(Puppet::Util::Cacher)
-  end
+describe Puppet::Type, :fails_on_windows => true do
+  include PuppetSpec::Files
 
   it "should consider a parameter to be valid if it is a valid parameter" do
     Puppet::Type.type(:mount).should be_valid_parameter(:path)
@@ -16,18 +14,6 @@ describe Puppet::Type do
 
   it "should consider a parameter to be valid if it is a valid metaparam" do
     Puppet::Type.type(:mount).should be_valid_parameter(:noop)
-  end
-
-  it "should use its catalog as its expirer" do
-    catalog = Puppet::Resource::Catalog.new
-    resource = Puppet::Type.type(:mount).new(:name => "foo", :fstype => "bar", :pass => 1, :ensure => :present)
-    resource.catalog = catalog
-    resource.expirer.should equal(catalog)
-  end
-
-  it "should do nothing when asked to expire when it has no catalog" do
-    resource = Puppet::Type.type(:mount).new(:name => "foo", :fstype => "bar", :pass => 1, :ensure => :present)
-    lambda { resource.expire }.should_not raise_error
   end
 
   it "should be able to retrieve a property by name" do
@@ -166,11 +152,29 @@ describe Puppet::Type do
 
   describe "when creating a provider" do
     before :each do
-      @type = Puppet::Type.newtype(:provider_test_type)
+      @type = Puppet::Type.newtype(:provider_test_type) do
+        newparam(:name) { isnamevar }
+        newparam(:foo)
+        newproperty(:bar)
+      end
     end
 
     after :each do
       @type.provider_hash.clear
+    end
+
+    describe "when determining if instances of the type are managed" do
+      it "should not consider audit only resources to be managed" do
+        @type.new(:name => "foo", :audit => 'all').managed?.should be_false
+      end
+
+      it "should not consider resources with only parameters to be managed" do
+        @type.new(:name => "foo", :foo => 'did someone say food?').managed?.should be_false
+      end
+
+      it "should consider resources with any properties set to be managed" do
+        @type.new(:name => "foo", :bar => 'Let us all go there').managed?.should be_true
+      end
     end
 
     it "should create a subclass of Puppet::Provider for the provider" do
@@ -309,7 +313,8 @@ describe Puppet::Type do
       end
 
       it "should use the Resource Type's namevar to determine how to find the name in the hash" do
-        Puppet::Type.type(:file).new(:path => "/yay").title.should == "/yay"
+        yay = make_absolute('/yay')
+        Puppet::Type.type(:file).new(:path => yay).title.should == yay
       end
 
       [:catalog].each do |param|
@@ -373,11 +378,11 @@ describe Puppet::Type do
     end
 
     # This one is really hard to test :/
-    it "should each default immediately if no value is provided" do
+    it "should set each default immediately if no value is provided" do
       defaults = []
-      Puppet::Type.type(:package).any_instance.stubs(:set_default).with { |value| defaults << value; true }
+      Puppet::Type.type(:service).any_instance.stubs(:set_default).with { |value| defaults << value; true }
 
-      Puppet::Type.type(:package).new :name => "whatever"
+      Puppet::Type.type(:service).new :name => "whatever"
 
       defaults[0].should == :provider
     end
@@ -387,7 +392,7 @@ describe Puppet::Type do
     end
 
     it "should delete the name via the namevar from the originally provided parameters" do
-      Puppet::Type.type(:file).new(:name => "/foo").original_parameters[:path].should be_nil
+      Puppet::Type.type(:file).new(:name => make_absolute('/foo')).original_parameters[:path].should be_nil
     end
   end
 
@@ -471,7 +476,7 @@ describe Puppet::Type do
     end
 
     it "should provide a value for 'ensure' even if no desired value is provided" do
-      @resource = Puppet::Type.type(:file).new(:path => "/my/file/that/can't/exist")
+      @resource = Puppet::Type.type(:file).new(:path => make_absolute("/my/file/that/can't/exist"))
     end
 
     it "should not call retrieve on non-ensure properties if the resource is absent and should consider the property absent" do
@@ -513,8 +518,8 @@ describe Puppet::Type do
     before do
       @catalog = Puppet::Resource::Catalog.new
       @container = Puppet::Type.type(:component).new(:name => "container")
-      @one = Puppet::Type.type(:file).new(:path => "/file/one")
-      @two = Puppet::Type.type(:file).new(:path => "/file/two")
+      @one = Puppet::Type.type(:file).new(:path => make_absolute("/file/one"))
+      @two = Puppet::Type.type(:file).new(:path => make_absolute("/file/two"))
 
       @catalog.add_resource @container
       @catalog.add_resource @one
@@ -541,7 +546,9 @@ describe Puppet::Type do
   end
 end
 
-describe Puppet::Type::RelationshipMetaparam do
+describe Puppet::Type::RelationshipMetaparam, :fails_on_windows => true do
+  include PuppetSpec::Files
+
   it "should be a subclass of Puppet::Parameter" do
     Puppet::Type::RelationshipMetaparam.superclass.should equal(Puppet::Parameter)
   end
@@ -550,14 +557,15 @@ describe Puppet::Type::RelationshipMetaparam do
     Puppet::Type::RelationshipMetaparam.should respond_to(:subclasses)
   end
 
-  describe "when munging relationships" do
+  describe "when munging relationships", :'fails_on_windows' => true do
     before do
-      @resource = Puppet::Type.type(:mount).new :name => "/foo"
+      @path = make_absolute('/foo')
+      @resource = Puppet::Type.type(:mount).new :name => @path
       @metaparam = Puppet::Type.metaparamclass(:require).new :resource => @resource
     end
 
     it "should accept Puppet::Resource instances" do
-      ref = Puppet::Resource.new(:file, "/foo")
+      ref = Puppet::Resource.new(:file, @path)
       @metaparam.munge(ref)[0].should equal(ref)
     end
 
@@ -585,18 +593,22 @@ describe Puppet::Type::RelationshipMetaparam do
   end
 end
 
-describe Puppet::Type.metaparamclass(:check) do
+describe Puppet::Type.metaparamclass(:check), :fails_on_windows => true do
+  include PuppetSpec::Files
+
   it "should warn and create an instance of ':audit'" do
-    file = Puppet::Type.type(:file).new :path => "/foo"
+    file = Puppet::Type.type(:file).new :path => make_absolute('/foo')
     file.expects(:warning)
     file[:check] = :mode
     file[:audit].should == [:mode]
   end
 end
 
-describe Puppet::Type.metaparamclass(:audit) do
+describe Puppet::Type.metaparamclass(:audit), :fails_on_windows => true do
+  include PuppetSpec::Files
+
   before do
-    @resource = Puppet::Type.type(:file).new :path => "/foo"
+    @resource = Puppet::Type.type(:file).new :path => make_absolute('/foo')
   end
 
   it "should default to being nil" do
@@ -642,8 +654,9 @@ describe Puppet::Type.metaparamclass(:audit) do
       Puppet::Type.type(:file).stubs(:title_patterns).returns(
         [ [ /(.*)/, [ [:path, lambda{|x| x} ] ] ] ]
       )
-      res = Puppet::Type.type(:file).new( :title => '/my/file', :path => '/my/file', :owner => 'root', :content => 'hello' )
-      res.uniqueness_key.should == [ nil, 'root', '/my/file']
+      myfile = make_absolute('/my/file')
+      res = Puppet::Type.type(:file).new( :title => myfile, :path => myfile, :owner => 'root', :content => 'hello' )
+      res.uniqueness_key.should == [ nil, 'root', myfile]
     end
   end
 end

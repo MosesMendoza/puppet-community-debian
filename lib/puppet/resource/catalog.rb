@@ -3,7 +3,6 @@ require 'puppet/indirector'
 require 'puppet/simple_graph'
 require 'puppet/transaction'
 
-require 'puppet/util/cacher'
 require 'puppet/util/pson'
 
 require 'puppet/util/tagging'
@@ -20,7 +19,6 @@ class Puppet::Resource::Catalog < Puppet::SimpleGraph
 
   include Puppet::Util::Tagging
   extend Puppet::Util::Pson
-  include Puppet::Util::Cacher::Expirer
 
   # The host name this is a catalog for.
   attr_accessor :name
@@ -126,10 +124,6 @@ class Puppet::Resource::Catalog < Puppet::SimpleGraph
   def apply(options = {})
     @applying = true
 
-    # Expire all of the resource data -- this ensures that all
-    # data we're operating against is entirely current.
-    expire
-
     Puppet::Util::Storage.load if host_config?
 
     transaction = Puppet::Transaction.new(self, options[:report])
@@ -165,7 +159,6 @@ class Puppet::Resource::Catalog < Puppet::SimpleGraph
     return transaction
   ensure
     @applying = false
-    cleanup
   end
 
   # Are we in the middle of applying the catalog?
@@ -198,14 +191,6 @@ class Puppet::Resource::Catalog < Puppet::SimpleGraph
 
     add_resource(resource)
     resource
-  end
-
-  def dependent_data_expired?(ts)
-    if applying?
-      return super
-    else
-      return true
-    end
   end
 
   # Turn our catalog graph into an old-style tree of TransObjects and TransBuckets.
@@ -550,11 +535,24 @@ class Puppet::Resource::Catalog < Puppet::SimpleGraph
 
   # Store the classes in the classfile.
   def write_class_file
-      ::File.open(Puppet[:classfile], "w") do |f|
-        f.puts classes.join("\n")
-      end
+    ::File.open(Puppet[:classfile], "w") do |f|
+      f.puts classes.join("\n")
+    end
   rescue => detail
-      Puppet.err "Could not create class file #{Puppet[:classfile]}: #{detail}"
+    Puppet.err "Could not create class file #{Puppet[:classfile]}: #{detail}"
+  end
+
+  # Store the list of resources we manage
+  def write_resource_file
+    ::File.open(Puppet[:resourcefile], "w") do |f|
+      to_print = resources.map do |resource|
+        next unless resource.managed?
+        "#{resource.type}[#{resource[resource.name_var]}]"
+      end.compact
+      f.puts to_print.join("\n")
+    end
+  rescue => detail
+    Puppet.err "Could not create resource file #{Puppet[:resourcefile]}: #{detail}"
   end
 
   # Produce the graph files if requested.
@@ -566,11 +564,6 @@ class Puppet::Resource::Catalog < Puppet::SimpleGraph
   end
 
   private
-
-  def cleanup
-    # Expire any cached data the resources are keeping.
-    expire
-  end
 
   # Verify that the given resource isn't defined elsewhere.
   def fail_on_duplicate_type_and_title(resource)

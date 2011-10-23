@@ -37,7 +37,10 @@ module Puppet
       desc "The group ID.  Must be specified numerically.  If not
         specified, a number will be picked, which can result in ID
         differences across systems and thus is not recommended.  The
-        GID is picked according to local system standards."
+        GID is picked according to local system standards.
+
+        On Windows, the property will return the group's security
+        identifier (SID)."
 
       def retrieve
         provider.gid
@@ -104,8 +107,6 @@ module Puppet
 
     newparam(:ia_load_module, :required_features => :manages_aix_lam) do
       desc "The name of the I&A module to use to manage this user"
-
-      defaultto "compat"
     end
 
     newproperty(:attributes, :parent => Puppet::Property::KeyValue, :required_features => :manages_aix_lam) do

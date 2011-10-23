@@ -47,8 +47,18 @@ module Puppet
         provider.disable
       end
 
+      newvalue(:manual, :event => :service_manual_start) do
+        provider.manual_start
+      end
+
       def retrieve
         provider.enabled?
+      end
+
+      validate do |value|
+        if value == :manual and !Puppet.features.microsoft_windows?
+          raise Puppet::Error.new("Setting enable to manual is only supported on Microsoft Windows.")
+        end
       end
     end
 
@@ -121,7 +131,7 @@ module Puppet
         value = [value] unless value.is_a?(Array)
         # LAK:NOTE See http://snurl.com/21zf8  [groups_google_com]
         # It affects stand-alone blocks, too.
-        paths = value.flatten.collect { |p| x = p.split(":") }.flatten
+        paths = value.flatten.collect { |p| x = p.split(File::PATH_SEPARATOR) }.flatten
       end
 
       defaultto { provider.class.defpath if provider.class.respond_to?(:defpath) }
