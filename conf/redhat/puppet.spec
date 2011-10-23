@@ -5,13 +5,13 @@
 %global confdir conf/redhat
 
 Name:           puppet
-Version:        2.7.2
-Release:        0.2.rc1%{?dist}
+Version:        2.7.6
+Release:        1%{?dist}
 Summary:        A network tool for managing many disparate systems
 License:        ASL 2.0
 URL:            http://puppetlabs.com
-Source0:        http://puppetlabs.com/downloads/%{name}/%{name}-%{version}rc1.tar.gz
-Source1:        http://puppetlabs.com/downloads/%{name}/%{name}-%{version}rc1.tar.gz.asc
+Source0:        http://puppetlabs.com/downloads/%{name}/%{name}-%{version}.tar.gz
+Source1:        http://puppetlabs.com/downloads/%{name}/%{name}-%{version}.tar.gz.asc
 
 Group:          System Environment/Base
 
@@ -65,7 +65,7 @@ Provides the central puppet server daemon which provides manifests to clients.
 The server can also function as a certificate authority and file server.
 
 %prep
-%setup -q -n %{name}-%{version}rc1
+%setup -q -n %{name}-%{version}
 patch -s -p1 < conf/redhat/rundir-perms.patch
 
 
@@ -282,15 +282,30 @@ fi
 rm -rf %{buildroot}
 
 %changelog
+* Fri Oct 21 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.6-1
+- 2.7.6 final
+
+* Thu Oct 13 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.6-.1rc3
+- New RC
+
+* Fri Oct 07 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.6-0.1rc2
+- New RC
+
+* Mon Oct 03 2011 Michael Stahnke <stahnma@puppetlabs.com> -  2.7.6-0.1rc1
+- New RC
+
+* Fri Sep 30 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.5-1
+- Fixes for CVE-2011-3869, 3870, 3871
+
+* Wed Sep 28 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.4-1
+- Fix for CVE-2011-3484
+
 * Wed Jul 06 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.2-0.2.rc1
 - Clean up rpmlint errors
 - Put man pages in correct package
 
 * Wed Jul 06 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.2-0.1.rc1
 - Update to 2.7.2rc1
-
-* Tue Jun 21 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.6.9-1
-- Release of 2.6.9 
 
 * Wed Jun 15 2011 Todd Zullinger <tmz@pobox.com> - 2.6.9-0.1.rc1
 - Update rc versioning to ensure 2.6.9 final is newer to rpm

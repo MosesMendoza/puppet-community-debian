@@ -1,8 +1,4 @@
 #!/usr/bin/env rspec
-#
-#  Created by Luke Kanies on 2007-11-12.
-#  Copyright (c) 2007. All rights reserved.
-
 require 'spec_helper'
 require 'puppet/configurer'
 
@@ -91,6 +87,11 @@ describe Puppet::Configurer do
       @agent.stubs(:save_last_run_summary)
 
       Puppet::Util::Log.stubs(:close_all)
+    end
+
+    after :all do
+      Puppet::Node::Facts.indirection.reset_terminus_class
+      Puppet::Resource::Catalog.indirection.reset_terminus_class
     end
 
     it "should prepare for the run" do
@@ -244,7 +245,7 @@ describe Puppet::Configurer do
       Puppet.settings[:prerun_command] = "/my/command"
       Puppet::Util.expects(:execute).with(["/my/command"]).raises(Puppet::ExecutionFailure, "Failed")
 
-      report.expects(:<<).with { |log| log.message =~ /^Could not run command from prerun_command/ }
+      report.expects(:<<).with { |log| log.message.include?("Could not run command from prerun_command") }
 
       @agent.run.should be_nil
     end
@@ -267,7 +268,7 @@ describe Puppet::Configurer do
       Puppet.settings[:postrun_command] = "/my/command"
       Puppet::Util.expects(:execute).with(["/my/command"]).raises(Puppet::ExecutionFailure, "Failed")
 
-      report.expects(:<<).with { |log| log.message =~ /^Could not run command from postrun_command/ }
+      report.expects(:<<).with { |log| log.message.include?("Could not run command from postrun_command") }
 
       @agent.run.should be_nil
     end
@@ -570,6 +571,12 @@ describe Puppet::Configurer do
 
     it "should write the RAL catalog's class file" do
       @catalog.expects(:write_class_file)
+
+      @agent.convert_catalog(@oldcatalog, 10)
+    end
+
+    it "should write the RAL catalog's resource file" do
+      @catalog.expects(:write_resource_file)
 
       @agent.convert_catalog(@oldcatalog, 10)
     end

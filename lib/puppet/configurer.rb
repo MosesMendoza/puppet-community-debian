@@ -102,6 +102,7 @@ class Puppet::Configurer
     catalog.finalize
     catalog.retrieval_duration = duration
     catalog.write_class_file
+    catalog.write_resource_file
     catalog
   end
 
@@ -161,10 +162,6 @@ class Puppet::Configurer
       # Make sure we forget the retained module_directories of any autoload
       # we might have used.
       Thread.current[:env_module_directories] = nil
-
-      # Now close all of our existing http connections, since there's no
-      # reason to leave them lying open.
-      Puppet::Network::HttpPool.clear_http_instances
     end
   ensure
     Puppet::Util::Log.close(report)

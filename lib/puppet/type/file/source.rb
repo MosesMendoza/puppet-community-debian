@@ -66,19 +66,33 @@ module Puppet
     validate do |sources|
       sources = [sources] unless sources.is_a?(Array)
       sources.each do |source|
+        next if Puppet::Util.absolute_path?(source)
+
         begin
           uri = URI.parse(URI.escape(source))
         rescue => detail
           self.fail "Could not understand source #{source}: #{detail}"
         end
 
-        self.fail "Cannot use URLs of type '#{uri.scheme}' as source for fileserving" unless uri.scheme.nil? or %w{file puppet}.include?(uri.scheme)
+        self.fail "Cannot use relative URLs '#{source}'" unless uri.absolute?
+        self.fail "Cannot use opaque URLs '#{source}'" unless uri.hierarchical?
+        self.fail "Cannot use URLs of type '#{uri.scheme}' as source for fileserving" unless %w{file puppet}.include?(uri.scheme)
       end
     end
 
+    SEPARATOR_REGEX = [Regexp.escape(File::SEPARATOR.to_s), Regexp.escape(File::ALT_SEPARATOR.to_s)].join
+
     munge do |sources|
       sources = [sources] unless sources.is_a?(Array)
-      sources.collect { |source| source.sub(/\/$/, '') }
+      sources.map do |source|
+        source = source.sub(/[#{SEPARATOR_REGEX}]+$/, '')
+
+        if Puppet::Util.absolute_path?(source)
+          URI.unescape(Puppet::Util.path_to_uri(source).to_s)
+        else
+          source
+        end
+      end
     end
 
     def change_to_s(currentvalue, newvalue)
@@ -95,13 +109,14 @@ module Puppet
     end
 
     # Look up (if necessary) and return remote content.
-    cached_attr(:content) do
+    def content
+      return @content if @content
       raise Puppet::DevError, "No source for content was stored with the metadata" unless metadata.source
 
       unless tmp = Puppet::FileServing::Content.indirection.find(metadata.source)
         fail "Could not find any content at %s" % metadata.source
       end
-      tmp.content
+      @content = tmp.content
     end
 
     # Copy the values from the source to the resource.  Yay.
@@ -137,33 +152,35 @@ module Puppet
       ! (metadata.nil? or metadata.ftype.nil?)
     end
 
+    attr_writer :metadata
+
     # Provide, and retrieve if necessary, the metadata for this file.  Fail
     # if we can't find data about this host, and fail if there are any
     # problems in our query.
-    cached_attr(:metadata) do
+    def metadata
+      return @metadata if @metadata
       return nil unless value
-      result = nil
       value.each do |source|
         begin
           if data = Puppet::FileServing::Metadata.indirection.find(source)
-            result = data
-            result.source = source
+            @metadata = data
+            @metadata.source = source
             break
           end
         rescue => detail
           fail detail, "Could not retrieve file metadata for #{source}: #{detail}"
         end
       end
-      fail "Could not retrieve information from environment #{Puppet[:environment]} source(s) #{value.join(", ")}" unless result
-      result
+      fail "Could not retrieve information from environment #{Puppet[:environment]} source(s) #{value.join(", ")}" unless @metadata
+      @metadata
     end
 
     def local?
-      found? and uri and (uri.scheme || "file") == "file"
+      found? and scheme == "file"
     end
 
     def full_path
-      URI.unescape(uri.path) if found? and uri
+      Puppet::Util.uri_to_path(uri) if found?
     end
 
     def server
@@ -173,8 +190,11 @@ module Puppet
     def port
       (uri and uri.port) or Puppet.settings[:masterport]
     end
-
     private
+
+    def scheme
+      (uri and uri.scheme)
+    end
 
     def uri
       @uri ||= URI.parse(URI.escape(metadata.source))

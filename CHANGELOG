@@ -1,3 +1,286 @@
+2.7.6 (includes CVE-2011-3872 see http://puppetlabs.com/security/hotfixes/cve-2011-3872/
+===
+c09517a Improve the error message when a CSR is rejected
+9346530 Allow a master to bootstrap itself with dns_alt_names and autosign
+7679c66 (maint) Remove ssl dir before starting a master with DNS alt names
+e4c64c7 Fix failing CA Interface specs on Ruby 1.9
+9ee1215 Fix some inconsistencies from merging
+8144939 Add support for DNS alt names to `puppet ca`
+2ba56e3 More 1.8.5 compatibility fixes.
+6257188 Better 1.8.5 compatible implementation of `lines`.
+4ba4db7 (#2848) Config options require '_', not '-'.
+493f8d1 Add --allow-dns-alt-names option to `puppet certificate sign`
+0cc8936 Add support for dns-alt-names option to `puppet certificate generate`
+c65236d Ruby 1.8.5 compatibility changes in tests and code.
+6c37623 Add `lines` alias for `each_line` in Ruby 1.8.5.
+e29eb6a s/not_to/should_not/ for older versions of RSpec 2.
+f1f5298 (#2848) Eliminate redundant `master_dns_alt_names`.
+3a8b376 (#2848) Remove the legacy SSLCertificates code
+28dead0 (#2848) Rework the xmlrpc CA handler to use the modern SSL code
+a644514 (#2848) Remove unused xmlrpc code
+2b1ad43 (#2848) Consistent return values from `subject_alt_names` accessors.
+d8516d9 (#2848) Consistently use `subject_alt_names` as accessor name.
+0b45f4c (#2848) Don't strip the subjectAltName label when listing.
+99488f3 (#2848) Don't enable `emailProtection` for server keys.
+f1285a4 (#2848) Only mark `subjectAltName` critical if `subject` is empty.
+e65a88e (#2848) Migrate `dns-alt-names` back to settings.
+b876c39 Wire up the `setbycli` slot in Puppet settings.
+a53f2f2 (#2848) rename subject-alt-name option to dns-alt-names
+bc2267a (#2848) Rename `certdnsnames` to match new behaviour.
+a720499 (#2848) Use `certdnsnames` when bootstrapping a local master.
+6e3f529 (#2848) CSR subjectAltNames handling while signing.
+978b65c (#2848) List subject alt names in output of puppet cert --list
+7460a5e (#7224) Add a helper to Puppet::SSL::Certificate to retrieve alternate names
+94345eb (#2848) Rewrite SSL Certificate Factory, fixing `subjectAltName` leak.
+a729d90 (#2848) Reject unknown (== all) extensions on the CSR.
+f4fc11d (#2848) extract the subjectAltName value from the CSR.
+d64b01b (#2848) Set `certdnsnames` values into the CSR.
+78a01a2 (#6928) Don't blow up when the method is undefined...
+43d1e38 (#9996) Restore functionality for multi-line commands in exec resources
+d457763 (#9832) General StoreConfigs regression.
+2958b05 maint: Deal with [].to_s problem in 1.9.2
+9c25af4 (#9027) Get rid of spurious info messages in groupadd
+1f25c20 (#8411) Fix change group for POSIX file provider
+599642d Fix problem with set_mode (chmod) behavior on different test environments.
+b43765d Undo change to failing test on 1.8.5
+c275a51 Resist directory traversal attacks through indirections.
+d759f84 (#9838) Return the tranaction report when doing a ral save
+127f83e (#9837) Split parameter pruning from manifest formatting
+9d5ce00 (#9837) Move resource formatting method to Puppet::Resource
+86230d8 (#9837) Move properties in prep to move proc to method
+bf952e1 (#9837) Make a clearer variable name in the specs
+6885c36 (#9837) Call puppet apply to avoid deprecation warning
+93f8057 (#9837) Extract methods from the main section of the resource application
+5d33214 (#9837) Start the cleanup of the puppet resource application
+54a2565 (#9832) Test failures with some ActiveRecord versions.
+2bf8004 Updates for 2.6.11
+8343077 (#9832) 2.7.4 StoreConfigs regression with PostgreSQL.
+dce82ea (#9458) Require main puppet module
+e158b26 (#9793) "secure" indirector file backed terminus base class.
+343c7bd (#9792) Predictable temporary filename in ralsh.
+88512e8 Drop privileges before creating and chmodding SSH keys.
+6533292 (#9328) Retrieve user and group SIDs on windows.
+2775c21 (#9794) k5login can overwrite arbitrary files as root
+e7a6995 (#9794) k5login can overwrite arbitrary files as root
+408d117 Updated CHANGELOG for 2.6.10
+ec5a32a Update spec and lib/puppet.rb for 2.6.10 release
+4e8d3a1 (#9775) Only list managed resources in the resources file
+51b33d1 (#9326) Support plaintext passwords in Windows 'user' provider.
+fe2de81 Resist directory traversal attacks through indirections.
+5fea1dc Fix issues with Windows based file URIs
+1a13d24 Simplify absolute path detection
+a163cd5 Eliminate duplicate absolute path detection
+0ce60a5 Added methods for manipulating URI and file paths
+71ba92c Restrict the absolute path regex to the start of the string
+1edf767 Move group management into providers
+15149c1 Remove duplicate SID resolution code
+f932511 Move owner management into providers
+f05fc83 Add platform-specific metadata collectors
+db0b4fb Make string_to_sid_ptr block optional
+7fc6baf Add the ability to retrieve user and group SIDs
+22bfd9c Move mode management into the providers
+4c3aae8 Fix typo bug that prevented FILE_DELETE_CHILD from being set
+7de0a80 Sub away trailing backslashes at the end of sources on Windows
+44cb1f1 Refactor autorequire of parent to use pathname with ancestors
+1300e0a Remove unnecessary Windows-on-non-Windows-master code for path parameter
+1f9b57f Cleanup file type integration tests
+8d21262 Cleanup and improve coverage of file type unit tests
+0a92a70 Resist directory traversal attacks through indirections.
+8b6a775 Call Array#join explicitly on command
+ae74c68 Fix failing SSL Host test introduced by b6a67edc
+37a1975 (#4549) Fix templates to be able to call all functions
+a74e56d Expand paths in catalog_spec for windows testing
+8d86e5a (9547) Minor mods to acceptance tests
+8ec3c7b (#4135) Update pluginsync to only load ruby files.
+0c8a0c7 Fix order dependent test failures relating to ADSI
+c0edb76 (#9186) Fix tests that fail on 2008 when running as SYSTEM
+8e14de6 (#9186) Handle when running under non 'user' contexts
+7595475 Fix device.conf error reporting
+1d3a3a7 Fix #9164 - allow '-' in device certificate names
+b6a67ed Fix #7982 - puppet device doesn't reset all cached attributes
+ba1f469 (#9186) Change to shared_examples_for
+b27b013 (#8410) Fix child exit status on Windows
+42c9982 (#9186) Add the ability to get/set windows permissions
+d34d28d (#9435) Gracefully handle when syslog feature is unavailable
+f013c65 (#9435) Fix absolute path matching for file log destinations
+ea88745 (#9329) Disable agent daemonizing on Windows
+
+2.7.5
+===
+a36f39d Updating version numbers for 2.7.5
+de51f3d (#9832) 2.7.4 StoreConfigs regression with PostgreSQL.
+1aa9be5 (#9793) "secure" indirector file backed terminus base class.
+d76c309 (#9792) Predictable temporary filename in ralsh. (CVE-2011-3871)
+b29b178 Drop privileges before creating and chmodding SSH keys.(CVE-2011-3870)
+7d4c169 (#9794) k5login can overwrite arbitrary files as root (CVE-2011-3869)
+
+
+2.7.4
+===
+47135fb Resist directory traversal attacks through indirections. (CVE-2011-3484)
+9dd18cf Updated CHANGELOG for 2.7.4rc3
+fe92f20 (#9440) Allow cron vars to have leading whitespace
+da69637 Fix failing spec for resource file
+7a39ca7 (#8667) Write out a list of resources that are managed by puppet agent
+bc40516 Fix order dependent spec failure in exec specs
+a20551f Updated CHANGELOG for 2.7.4rc2
+d59a0b3 Update certificate_spec.rb test to include spec_helper
+f325b40 Fix #7984 - GigabitEthernet/TenGigabitEthernet are uncorrectly parsed
+6cc15c2 Fix #7983 - Cisco uptime facts doesn't always work
+41302e9 Fixes #9143, allows macauthorization provider to work on OS X Lion 10.7
+5a3f24d Updated CHANGELOG for 2.7.4rc1
+04519a7 Revert "Merge pull request #100 from glarizza/tickets/2.7.x/9192_launchd_fix"
+769f2b2 Revert "Merge pull request #99 from nigelkersten/tickets/2.7.x/9143-make-macauthorization-work-on-lion"
+ff13d8d Add comment explaining helper method
+40f64e9 Add has_macosx_plist_overrides? method
+670d30c Fix ActiveRecord handling of symbols in query interpolation.
+51b0c00 Fixes #9143, allows macauthorization provider to work on OS X Lion 10.7
+a04051a (#9051) Move complex collect expression error into terminus.
+f7e526b (#8413) Only try to catch Process::Error if it's defined
+2c96286 Debug order-dependent test failures in CI / ActiveRecord.
+38070d5 Don't toggle storeconfigs back and forth.
+cf60243 One character typo, entire code path broken...
+40dc39c More protection against accidentally using sqlite3
+f898749 Save and restore indirector configuration around all tests.
+e3073ac (#9051) More storeconfigs test cleanup.
+51461de (#9051) Protect SQLite tests from running without gem.
+bb0380f (#8662) Don't rely on error message to detect UAC capable platform
+2ab5634 (#8413) Properly clean up stale pidfile on Windows
+cc958e1 (#8412) Add MSI package provider for use with Windows
+878ea25 (#8412) Add optional type-level validation of the source parameter
+dad075d Correct grammar in parameter comment
+4168a4c Clean up formatting & whitespace in Puppet::Type
+fd1d4b9 (#9051) de-ActiveRecord-ify Collection expressions.
+78e33cc (#9051) Port query tests into the indirection.
+65580e7 (#9051) Implement the `resource` terminus for StoreConfigs.
+89aaa51 (#9051) Make generic tagging imported resource origins.
+d5b295d (#9051) Whitespace cleanup for puppet/parser/collector
+611c466 (#9051) Dead code elimination in the compiler terminus.
+6e0ff6a (#9051) Get the compiler out of the ActiveRecord business.
+4d51680 (#9051) Implement the StoreConfigs indirection itself.
+d0357c8 (#9051) Add configuration around StoreConfigs indirection.
+8700682 (#9051) de-ActiveRecord-ify Collection expressions.
+4274e15 (#9174) Provide a helpful error when missing a gem and installing on Windows
+f53db3d Clean up formatting & whitespace in package type & providers
+6dff78c (#8489) Use File::PATH_SEPARATOR in path attribute of service type
+64dbd3b (#8489) Use File::PATH_SEPARATOR for path attribute of exec type
+3e40207 (#8489) Use File::PATH_SEPARATOR rather than ':' for factpath setting
+c469294 (#8489) Use File::PATH_SEPARATOR rather than ':' for args to puppet doc
+a2ced0f Properly determine file deletion in puppet/unit/util_spec.rb
+bc5f1e3 (#9051) Port query tests into the indirection.
+fa78e99 (#9051) Implement the `resource` terminus for StoreConfigs.
+f6b91be (#8140) Add an exec provider for Windows
+18c322a (#8410) Factor out a base class for exec providers
+cb53870 (#8410) Cleanup and fix Windows support in Puppet::Util.execute
+39a582b (#8410) Use absolute_path? for Puppet::Parameter::Path validation
+fb6df31 (#8410) Add a helper to Puppet::Util to determine absoluteness of a path
+c2a432a maint: Fix trailing whitespace in lib/puppet/util.rb
+fab2fe7 (#9051) Make generic tagging imported resource origins.
+5300368 (#9051) Whitespace cleanup for puppet/parser/collector
+6420ede (#9051) Dead code elimination in the compiler terminus.
+543f331 (#9051) Get the compiler out of the ActiveRecord business.
+4b55e72 (#9051) Implement the StoreConfigs indirection itself.
+0f207a8 (#8662) Don't manage internal file permissions on Windows
+47058ab (#8662) Skip user and group resources when applying settings on Windows
+2ac8790 (#8662) Fix Puppet.features.root? on Windows
+ccdd043 (#8662) Break circular feature dependency
+4b29f5f (#9051) Add configuration around StoreConfigs indirection.
+9f39cc4 maint: Stub spec test so directory is not created unnecessarily
+66fb531 Don't use non-1.8.5-compatible methods 'Object#tap' and 'Dir.mktmpdir'
+2091cbe maint: Fix build break due to recent merge from 2.7.x to master
+2681ca5 Fix posix exec provider spec failures on Windows
+3812fc3 (#5495) Remove dead Windows-specific code from posix exec provider
+b6ca78c Stop trying to make config directories in Windows specs
+4237cb1 (#8272) Add missing tests for Windows service provider methods.
+a32c8be (#8409) Add a default group provider for Windows
+4f7170a (#8408) Add a default user provider for Windows
+f19a0ea (#8408/8409) Add a Windows ADSI helper module
+6919d2c (#8663) Exclude exec timeout test on Windows
+8009209 (#8663) Exclude git rev-parse HEAD spec test on Windows
+a0013e4 Check for the appropriate permissions in File type tests on Windows
+58c7dac Remove :fails_on_windows from file type tests that no longer fail on Windows
+9f2a7b9 Disable file bucket diffing tests on Windows
+1e59b26 Always put a slash between the checksum and path in filebucket URLs
+37f87b7 Treat Windows absolute paths as absolute paths
+4a6d617 Consolidate test logic determining if a registered file is in the temp directory
+8c88918 Clarify logic and error messages when initializing Puppet::FileBucket::File
+2efaa85 Disable symlink related file tests on Windows
+7259e1e (#8644) Host provider on Windows
+328eaa2 (#8660) Fix destdir option on Windows
+088c7ac (#8660) Default config dir to %PROGRAMDATA% on Windows
+925af95 (#8663) Disable spec tests for unsupported functionality on Windows
+04965d7 (#8663) Drive letters are not valid absolute paths on Windows
+f4598ec (#8663) Update the run_mode spec test on Windows to match the code
+68bdc74 (#8663) The ssh_authorized_key type is not supported on Windows
+9fbb0be (#8663) Reenable spec tests on Windows that now pass
+c930152 (#8392) Disable master related tests on Windows
+28b1658 (#8272) Allow disabled Windows services to be started
+c69baf6 (#8272) Refactor specs for Windows service provider
+881c385 (#8272) Use symbols instead of booleans for enabled property on Windows
+9c575bd (#8272) Fixup logging in Windows service provider
+ad29bf6 Fix issue with forward and backslashes in Windows paths
+eaa7d92 Disable spec tests for unsupported functionality on Windows
+945bf74 Update certificate spec tests for Windows
+3be4d79 Add basic service provider for Windows
+d9a693d Regexp escape substituted commands in Windows wrapper script
+49d1e9d Rework Puppet::Util::Cacher to only expire using TTLs
+9849d56 Remove use of Puppet::Util::Cacher in Puppet::SSL::Host
+028b795 Remove dead uses of Puppet::Util::Cacher from autoloader
+7c4dbeb Remove Puppet::Util::Cacher use from Puppet::Indirector::Indirection
+d6e0b71 Remove caching from the catalog, types, and parameters
+d49dd9e Remove cached_attrs from Puppet::Type::File
+546e0f9 Remove Puppet::Util::Cacher usage from Puppet::Util::Settings
+b6b5498 Remove Util::Cacher usage from SSL::CertificateAuthority
+777b2f2 Remove unused require 'puppet/util/cacher' from Network::HttpPool
+41425bd Remove use of Util::Cacher from FileServing::Mount::File
+8d53090 Remove use of Util::Cacher in FileServing::Configuration
+3093047 Remove Puppet::Network::HttpPool keep_alive handling
+57d6217 Fix spec test failure on 1.9.2
+5d3a40f Maint: Fix miscellaneous tests
+ce0c258 Maint: Don't test for extended signals on Windows
+bdc9790 Maint: Tagged spec tests that are known to fail on Windows
+c26f3e5 Fix tests with "relative" paths on Windows
+bfeb337 (#8268) Require windows drive letters in absolute file paths
+fe81dec (#8489) Consistently use File::PATH_SEPARATOR
+a437812 (#8356) Specify setting type for color
+af2446a (#8268) Fix resource harness spec tests
+d9c3b0f (#8356) Color defaults to false on Windows
+9ebe500 Disable the master on Windows instead of blowing up with failed resources
+7467a08 (#7581) Provide more detailed error message when missing gems on Windows
+654de01 Maint: Correct docs for filebucket type and file's backup parameter
+b623826 Maint: Fix line wrapping in create_resources function
+fd7332b maint: remove inaccurate copyright and license statements.
+a8b27de Maint: Improve create_resources function's doc string
+5f22985 maint: Fix order dependent test failure
+7ac1093 (#8037) Fix incorrect example in Augeas type reference
+35c1006 (#9039) Update Augeas commands documentation
+2bf6721 Reset indirector state after configurer tests.
+e9b558d Fix posix exec provider spec failures on Windows
+b28bcb0 (#5495) Remove dead Windows-specific code from posix exec provider
+2297899 Do not leak indirector state from apply tests
+b52fbf4 (#8612) Clarify the function of the example for exec's "creates" parameter
+bb224dd (#8770) Don't fail to set supplementary groups when changing user to root
+2a0de12 (#8770) Always fully drop privileges when changing user
+00c4b25 (#8662) Migrate suidmanager test case to rspec
+d7c9c76 (#8740) Do not enumerate files in the root directory.
+39da99d (#4411) Explain that runinterval = 0 does not mean "never run"
+4146a33 Maint: Fix missing option text in puppet agent and arrange options alphabetically
+0e00473 (#3553) Explain that cron resources require time attributes
+769d432 (#8302) Improve documentation of exec providers
+76d45d2 (#7853) Clarify and complete docs for the tagmail report processor
+d60852b Maint: Mention that audit metaparameter will accept "all"
+51d989e Maint: Adjust wording for file type's content parameter
+a110d83 Maint: Fix poor documentation for versioncmp function.
+746a374 maint: Fix case sensitive require
+310bd55 maint: Add inspect app options to help
+3a19628 maint: Fix inspect help
+344aef9 (#8808) Fail Augeas resource when unable to save changes
+c209f62 Add document outlining preferred contribution methods
+839e7c9 (#7999) Add some basic tests of the systemd provider
+1cae354 (#7999) Add a service provider that manages systemd services natively
+3b152e4 (#7114) Fix value validation on options
+aa1b36f (#7114) Add tests for option property
+
 2.7.3
 ===
 7113448 (#4762) Ensure that clients on the moon can successfully connect.
@@ -913,6 +1196,20 @@ a1d216c Fixed the return types were valid, and removed the copy paste error with
 d532e6d Fixing #3185 Rakefile is loading puppet.rb twice
 5aa596c Fix #3150 - require function doesn't like ::class syntax
 3457b87 Added time module to tagmail report
+
+2.6.11
+===
+e158b26 (#9793) "secure" indirector file backed terminus base class.
+343c7bd (#9792) Predictable temporary filename in ralsh.
+88512e8 Drop privileges before creating and chmodding SSH keys.
+2775c21 (#9794) k5login can overwrite arbitrary files as root
+
+2.6.10
+===
+ec5a32a Update spec and lib/puppet.rb for 2.6.10 release
+fe2de81 Resist directory traversal attacks through indirections. (CVE-2011-3484)
+243aaa9 (#7956) Porting cron tests
+3e3fc69 (#7956) Port resource acceptance tests
 
 2.6.9
 ====

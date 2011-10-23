@@ -2,28 +2,57 @@
 require 'spec_helper'
 
 describe Puppet::Resource::Catalog, "when compiling" do
+  include PuppetSpec::Files
 
   before do
-    @basepath = Puppet.features.posix? ? "/somepath" : "C:/somepath"
+    @basepath = make_absolute("/somepath")
     # stub this to not try to create state.yaml
     Puppet::Util::Storage.stubs(:store)
   end
 
-  it "should be an Expirer" do
-    Puppet::Resource::Catalog.ancestors.should be_include(Puppet::Util::Cacher::Expirer)
+  # audit only resources are unmanaged
+  # as are resources without properties with should values
+  it "should write its managed resources' types, namevars" do
+    catalog = Puppet::Resource::Catalog.new("host")
+
+    resourcefile = tmpfile('resourcefile')
+    Puppet[:resourcefile] = resourcefile
+
+    res = Puppet::Type.type('file').new(:title => File.expand_path('/tmp/sam'), :ensure => 'present')
+    res.file = 'site.pp'
+    res.line = 21
+
+    res2 = Puppet::Type.type('exec').new(:title => 'bob', :command => "#{File.expand_path('/bin/rm')} -rf /")
+    res2.file = File.expand_path('/modules/bob/manifests/bob.pp')
+    res2.line = 42
+
+    res3 = Puppet::Type.type('file').new(:title => File.expand_path('/tmp/susan'), :audit => 'all')
+    res3.file = 'site.pp'
+    res3.line = 63
+
+    res4 = Puppet::Type.type('file').new(:title => File.expand_path('/tmp/lilly'))
+    res4.file = 'site.pp'
+    res4.line = 84
+
+    comp_res = Puppet::Type.type('component').new(:title => 'Class[Main]')
+
+    catalog.add_resource(res, res2, res3, res4, comp_res)
+    catalog.write_resource_file
+    File.readlines(resourcefile).map(&:chomp).should =~ [
+      "file[#{File.expand_path('/tmp/sam')}]",
+      "exec[#{File.expand_path('/bin/rm')} -rf /]"
+    ]
   end
 
-  it "should always be expired if it's not applying" do
-    @catalog = Puppet::Resource::Catalog.new("host")
-    @catalog.expects(:applying?).returns false
-    @catalog.should be_dependent_data_expired(Time.now)
-  end
+  it "should log an error if unable to write to the resource file" do
+    catalog = Puppet::Resource::Catalog.new("host")
+    Puppet[:resourcefile] = File.expand_path('/not/writable/file')
 
-  it "should not be expired if it's applying and the timestamp is late enough" do
-    @catalog = Puppet::Resource::Catalog.new("host")
-    @catalog.expire
-    @catalog.expects(:applying?).returns true
-    @catalog.should_not be_dependent_data_expired(Time.now)
+    catalog.add_resource(Puppet::Type.type('file').new(:title => File.expand_path('/tmp/foo')))
+    catalog.write_resource_file
+    @logs.size.should == 1
+    @logs.first.message.should =~ /Could not create resource file/
+    @logs.first.level.should == :err
   end
 
   it "should be able to write its list of classes to the class file" do
@@ -508,7 +537,7 @@ describe Puppet::Resource::Catalog, "when compiling" do
       @catalog.resource(:file, @basepath+"/something").should equal(resource)
     end
 
-    it "should not create aliases for non-isomorphic resources whose names do not match their titles" do
+    it "should not create aliases for non-isomorphic resources whose names do not match their titles", :fails_on_windows => true  do
       resource = Puppet::Type.type(:exec).new(:title => "testing", :command => "echo", :path => %w{/bin /usr/bin /usr/local/bin})
 
       @catalog.add_resource(resource)
@@ -614,11 +643,12 @@ describe Puppet::Resource::Catalog, "when compiling" do
       end
 
       it "should conflict when its uniqueness key matches another resource's title" do
-        @resource = Puppet::Type.type(:file).new(:title => "/tmp/foo")
-        @other    = Puppet::Type.type(:file).new(:title => "another file", :path => "/tmp/foo")
+        path = make_absolute("/tmp/foo")
+        @resource = Puppet::Type.type(:file).new(:title => path)
+        @other    = Puppet::Type.type(:file).new(:title => "another file", :path => path)
 
         @catalog.add_resource(@resource)
-        expect { @catalog.add_resource(@other) }.to raise_error(ArgumentError, /Cannot alias File\[another file\] to \["\/tmp\/foo"\].*resource \["File", "\/tmp\/foo"\] already defined/)
+        expect { @catalog.add_resource(@other) }.to raise_error(ArgumentError, /Cannot alias File\[another file\] to \["#{Regexp.escape(path)}"\].*resource \["File", "#{Regexp.escape(path)}"\] already defined/)
       end
 
       it "should conflict when its uniqueness key matches the uniqueness key derived from another resource's title" do
@@ -688,11 +718,6 @@ describe Puppet::Resource::Catalog, "when compiling" do
     it "should set ignoreschedules on the transaction if specified in apply()" do
       @transaction.expects(:ignoreschedules=).with(true)
       @catalog.apply(:ignoreschedules => true)
-    end
-
-    it "should expire cached data in the resources both before and after the transaction" do
-      @catalog.expects(:expire).times(2)
-      @catalog.apply
     end
 
     describe "host catalogs" do
@@ -855,8 +880,6 @@ describe Puppet::Resource::Catalog, "when compiling" do
       @real_indirection = Puppet::Resource::Catalog.indirection
 
       @indirection = stub 'indirection', :name => :catalog
-
-      Puppet::Util::Cacher.expire
     end
 
     it "should use the value of the 'catalog_terminus' setting to determine its terminus class" do
@@ -875,7 +898,6 @@ describe Puppet::Resource::Catalog, "when compiling" do
     end
 
     after do
-      Puppet::Util::Cacher.expire
       @real_indirection.reset_terminus_class
     end
   end

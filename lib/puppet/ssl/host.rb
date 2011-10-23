@@ -4,7 +4,6 @@ require 'puppet/ssl/key'
 require 'puppet/ssl/certificate'
 require 'puppet/ssl/certificate_request'
 require 'puppet/ssl/certificate_revocation_list'
-require 'puppet/util/cacher'
 
 # The class that manages all aspects of our SSL certificates --
 # private keys, public keys, requests, etc.
@@ -27,15 +26,16 @@ class Puppet::SSL::Host
   # This accessor is used in instances for indirector requests to hold desired state
   attr_accessor :desired_state
 
-  class << self
-    include Puppet::Util::Cacher
+  def self.localhost
+    return @localhost if @localhost
+    @localhost = new
+    @localhost.generate unless @localhost.certificate
+    @localhost.key
+    @localhost
+  end
 
-    cached_attr(:localhost) do
-      result = new
-      result.generate unless result.certificate
-      result.key # Make sure it's read in
-      result
-    end
+  def self.reset
+    @localhost = nil
   end
 
   # This is the constant that people will use to mark that a given host is
@@ -156,11 +156,24 @@ class Puppet::SSL::Host
     @certificate_request ||= CertificateRequest.indirection.find(name)
   end
 
+  def this_csr_is_for_the_current_host
+    name == Puppet[:certname].downcase
+  end
+
   # Our certificate request requires the key but that's all.
-  def generate_certificate_request
+  def generate_certificate_request(options = {})
     generate_key unless key
+
+    # If this is for the current machine...
+    if this_csr_is_for_the_current_host
+      # ...add our configured dns_alt_names
+      if Puppet[:dns_alt_names] and Puppet[:dns_alt_names] != ''
+        options[:dns_alt_names] ||= Puppet[:dns_alt_names]
+      end
+    end
+
     @certificate_request = CertificateRequest.new(name)
-    @certificate_request.generate(key.content)
+    @certificate_request.generate(key.content, options)
     begin
       CertificateRequest.indirection.save(@certificate_request)
     rescue
@@ -203,7 +216,7 @@ class Puppet::SSL::Host
     # should use it to sign our request; else, just try to read
     # the cert.
     if ! certificate and ca = Puppet::SSL::CertificateAuthority.instance
-      ca.sign(self.name)
+      ca.sign(self.name, true)
     end
   end
 
