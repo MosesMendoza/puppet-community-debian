@@ -1,14 +1,15 @@
+puppet (2.7.7-1puppetlabs1) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
+
+  * Update to 2.7.7
+
+ -- Michael Stahnke <stahnma@puppetlabs.com>  Tue, 22 Nov 2011 00:07:27 +0000
+
 puppet (2.7.6-1puppetlabs1) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
 
- * Update to 2.7.6
+  * Update to 2.7.6
    - Includes fix for CVE-2011-3872
 
  -- Michael Stahnke <stahnma@puppetlabs.com>  Sun, 23 Oct 2011 15:58:26 -0700
-
-puppet (2.7.1-1ubuntu1) oneiric; urgency=low
-
-
-
 
 puppet (2.7.3-1puppetlabs1) lenny; urgency=low
 
