@@ -3,8 +3,7 @@ require 'spec_helper'
 
 require 'puppet/ssl/host'
 
-# REMIND: Fails on windows because there is no user provider yet
-describe Puppet::SSL::Host, :fails_on_windows => true do
+describe Puppet::SSL::Host do
   include PuppetSpec::Files
 
   before do
@@ -80,7 +79,7 @@ describe Puppet::SSL::Host, :fails_on_windows => true do
     Puppet::SSL::Host.localhost.should equal(host)
   end
 
-  it "should create a localhost cert if no cert is available and it is a CA with autosign and it is using DNS alt names" do
+  it "should create a localhost cert if no cert is available and it is a CA with autosign and it is using DNS alt names", :unless => Puppet.features.microsoft_windows? do
     Puppet[:autosign] = true
     Puppet[:confdir] = tmpdir('conf')
     Puppet[:dns_alt_names] = "foo,bar,baz"

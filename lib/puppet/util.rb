@@ -191,7 +191,15 @@ module Util
       return bin if FileTest.file? bin and FileTest.executable? bin
     else
       ENV['PATH'].split(File::PATH_SEPARATOR).each do |dir|
-        dest=File.join(dir, bin)
+        dest = File.expand_path(File.join(dir, bin))
+        if Puppet.features.microsoft_windows? && File.extname(dest).empty?
+          exts = ENV['PATHEXT']
+          exts = exts ? exts.split(File::PATH_SEPARATOR) : %w[.COM .EXE .BAT .CMD]
+          exts.each do |ext|
+            destext = File.expand_path(dest + ext)
+            return destext if FileTest.file? destext and FileTest.executable? destext
+          end
+        end
         return dest if FileTest.file? dest and FileTest.executable? dest
       end
     end
@@ -355,17 +363,21 @@ module Util
     stdout = arguments[:squelch] ? File.open(null_file, 'w') : Tempfile.new('puppet')
     stderr = arguments[:combine] ? stdout : File.open(null_file, 'w')
 
-
     exec_args = [command, arguments, stdin, stdout, stderr]
 
     if execution_stub = Puppet::Util::ExecutionStub.current_value
       return execution_stub.call(*exec_args)
     elsif Puppet.features.posix?
       child_pid = execute_posix(*exec_args)
-      child_status = Process.waitpid2(child_pid).last.exitstatus
+      exit_status = Process.waitpid2(child_pid).last.exitstatus
     elsif Puppet.features.microsoft_windows?
       child_pid = execute_windows(*exec_args)
-      child_status = Process.waitpid2(child_pid).last
+      exit_status = Process.waitpid2(child_pid).last
+      # $CHILD_STATUS is not set when calling win32/process Process.create
+      # and since it's read-only, we can't set it. But we can execute a
+      # a shell that simply returns the desired exit status, which has the
+      # desired effect.
+      %x{#{ENV['COMSPEC']} /c exit #{exit_status}}
     end
 
     [stdin, stdout, stderr].each {|io| io.close rescue nil}
@@ -376,8 +388,8 @@ module Util
       Puppet.warning "Could not get output" unless output
     end
 
-    if arguments[:failonfail] and child_status != 0
-      raise ExecutionFailure, "Execution of '#{str}' returned #{child_status}: #{output}"
+    if arguments[:failonfail] and exit_status != 0
+      raise ExecutionFailure, "Execution of '#{str}' returned #{exit_status}: #{output}"
     end
 
     output
@@ -490,6 +502,12 @@ module Util
     end
   end
   module_function :secure_open
+
+  # Because IO#binread is only available in 1.9
+  def binread(file)
+    File.open(file, 'rb') { |f| f.read }
+  end
+  module_function :binread
 end
 end
 

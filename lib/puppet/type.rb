@@ -635,6 +635,10 @@ class Type
   ###############################
   # Code related to evaluating the resources.
 
+  def ancestors
+    []
+  end
+
   # Flush the provider, if it supports it.  This is called by the
   # transaction.
   def flush
@@ -1116,13 +1120,22 @@ class Type
       (e.g., each class and definition containing the resource), it can
       be useful to add your own tags to a given resource.
 
-      Tags are currently useful for things like applying a subset of a
-      host's configuration:
+      Multiple tags can be specified as an array:
 
-          puppet agent --test --tags mytag
+          file {'/etc/hosts':
+            ensure => file,
+            source => 'puppet:///modules/site/hosts',
+            mode   => 0644,
+            tag    => ['bootstrap', 'minimumrun', 'mediumrun'],
+          }
 
-      This way, when you're testing a configuration you can run just the
-      portion you're testing."
+      Tags are useful for things like applying a subset of a host's configuration
+      with [the `tags` setting](/references/latest/configuration.html#tags):
+
+          puppet agent --test --tags bootstrap
+
+      This way, you can easily isolate the portion of the configuration you're
+      trying to test."
 
     munge do |tags|
       tags = [tags] unless tags.is_a? Array
@@ -1477,9 +1490,15 @@ class Type
     return if @paramhash.has_key? :provider
 
     newparam(:provider) do
-      desc "The specific backend for #{self.name.to_s} to use. You will
-        seldom need to specify this --- Puppet will usually discover the
-        appropriate provider for your platform."
+      # We're using a hacky way to get the name of our type, since there doesn't
+      # seem to be a correct way to introspect this at the time this code is run.
+      # We expect that the class in which this code is executed will be something
+      # like Puppet::Type::Ssh_authorized_key::ParameterProvider.
+      desc <<-EOT
+        The specific backend to use for this `#{self.to_s.split('::')[2].downcase}`
+        resource. You will seldom need to specify this --- Puppet will usually
+        discover the appropriate provider for your platform.
+      EOT
 
       # This is so we can refer back to the type to get a list of
       # providers for documentation.

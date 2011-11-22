@@ -60,6 +60,7 @@
 #   (and different) owner or group.
 
 require 'puppet/util/windows'
+require 'pathname'
 
 require 'win32/security'
 
@@ -68,6 +69,7 @@ require 'windows/handle'
 require 'windows/security'
 require 'windows/process'
 require 'windows/memory'
+require 'windows/volume'
 
 module Puppet::Util::Windows::Security
   include Windows::File
@@ -76,6 +78,7 @@ module Puppet::Util::Windows::Security
   include Windows::Process
   include Windows::Memory
   include Windows::MSVCRT::Buffer
+  include Windows::Volume
 
   extend Puppet::Util::Windows::Security
 
@@ -92,6 +95,7 @@ module Puppet::Util::Windows::Security
   S_IRWXU = 0000700
   S_IRWXG = 0000070
   S_IRWXO = 0000007
+  S_ISVTX = 0001000
   S_IEXTRA = 02000000  # represents an extra ace
 
   # constants that are missing from Windows::Security
@@ -116,6 +120,8 @@ module Puppet::Util::Windows::Security
   # SE_BACKUP_NAME privilege in their process token can get the owner
   # for objects they do not have read access to.
   def get_owner(path)
+    return unless supports_acl?(path)
+
     get_sid(OWNER_SECURITY_INFORMATION, path)
   end
 
@@ -136,7 +142,22 @@ module Puppet::Util::Windows::Security
   # SE_BACKUP_NAME privilege in their process token can get the group
   # for objects they do not have read access to.
   def get_group(path)
+    return unless supports_acl?(path)
+
     get_sid(GROUP_SECURITY_INFORMATION, path)
+  end
+
+  def supports_acl?(path)
+    flags = 0.chr * 4
+
+    root = Pathname.new(path).enum_for(:ascend).to_a.last.to_s
+    # 'A trailing backslash is required'
+    root = "#{root}\\" unless root =~ /[\/\\]$/
+    unless GetVolumeInformation(root, nil, 0, nil, nil, flags, nil, 0)
+      raise Puppet::Util::Windows::Error.new("Failed to get volume information")
+    end
+
+    (flags.unpack('L')[0] & Windows::File::FILE_PERSISTENT_ACLS) != 0
   end
 
   def change_sid(old_sid, new_sid, info, path)
@@ -173,15 +194,23 @@ module Puppet::Util::Windows::Security
   end
 
   def add_attributes(path, flags)
-    set_attributes(path, get_attributes(path) | flags)
+    oldattrs = get_attributes(path)
+
+    if (oldattrs | flags) != oldattrs
+      set_attributes(path, oldattrs | flags)
+    end
   end
 
   def remove_attributes(path, flags)
-    set_attributes(path, get_attributes(path) & ~flags)
+    oldattrs = get_attributes(path)
+
+    if (oldattrs & ~flags) != oldattrs
+      set_attributes(path, oldattrs & ~flags)
+    end
   end
 
   def set_attributes(path, flags)
-    raise Puppet::Util::Windows::Error.new("Failed to set file attributes") if SetFileAttributes(path, flags) == 0
+    raise Puppet::Util::Windows::Error.new("Failed to set file attributes") unless SetFileAttributes(path, flags)
   end
 
   MASK_TO_MODE = {
@@ -192,15 +221,17 @@ module Puppet::Util::Windows::Security
 
   # Get the mode of the object referenced by +path+.  The returned
   # integer value represents the POSIX-style read, write, and execute
-  # modes for the user, group, and other classes, e.g. 0640.  Other
-  # modes, e.g. S_ISVTX, are not supported.  Any user with read access
-  # to an object can get the mode. Only a user with the SE_BACKUP_NAME
-  # privilege in their process token can get the mode for objects they
-  # do not have read access to.
+  # modes for the user, group, and other classes, e.g. 0640.  Any user
+  # with read access to an object can get the mode. Only a user with
+  # the SE_BACKUP_NAME privilege in their process token can get the
+  # mode for objects they do not have read access to.
   def get_mode(path)
+    return unless supports_acl?(path)
+
     owner_sid = get_owner(path)
     group_sid = get_group(path)
     well_known_world_sid = Win32::Security::SID::Everyone
+    well_known_nobody_sid = Win32::Security::SID::Nobody
 
     with_privilege(SE_BACKUP_NAME) do
       open_file(path, READ_CONTROL) do |handle|
@@ -226,6 +257,13 @@ module Puppet::Util::Windows::Security
                 mode |= (v << 6) | (v << 3) | v
               end
             end
+            if File.directory?(path) and (ace[:mask] & (FILE_WRITE_DATA | FILE_EXECUTE | FILE_DELETE_CHILD)) == (FILE_WRITE_DATA | FILE_EXECUTE)
+              mode |= S_ISVTX;
+            end
+          when well_known_nobody_sid
+            if (ace[:mask] & FILE_APPEND_DATA).nonzero?
+              mode |= S_ISVTX
+            end
           else
             #puts "Warning, unable to map SID into POSIX mode: #{ace[:sid]}"
             mode |= S_IEXTRA
@@ -248,17 +286,18 @@ module Puppet::Util::Windows::Security
     S_IROTH => FILE_GENERIC_READ,
     S_IWOTH => FILE_GENERIC_WRITE,
     S_IXOTH => (FILE_GENERIC_EXECUTE & ~FILE_READ_ATTRIBUTES),
-    (S_IWOTH | S_IXOTH) => FILE_DELETE_CHILD,
   }
 
   # Set the mode of the object referenced by +path+ to the specified
   # +mode+.  The mode should be specified as POSIX-stye read, write,
   # and execute modes for the user, group, and other classes,
-  # e.g. 0640. Other modes, e.g. S_ISVTX, are not supported. By
-  # default, the DACL is set to protected, meaning it does not inherit
-  # access control entries from parent objects. This can be changed by
-  # setting +protected+ to false. The owner of the object (with
-  # READ_CONTROL and WRITE_DACL access) can always change the
+  # e.g. 0640. The sticky bit, S_ISVTX, is supported, but is only
+  # meaningful for directories. If set, group and others are not
+  # allowed to delete child objects for which they are not the owner.
+  # By default, the DACL is set to protected, meaning it does not
+  # inherit access control entries from parent objects. This can be
+  # changed by setting +protected+ to false. The owner of the object
+  # (with READ_CONTROL and WRITE_DACL access) can always change the
   # mode. Only a user with the SE_BACKUP_NAME and SE_RESTORE_NAME
   # privileges in their process token can change the mode for objects
   # that they do not have read and write access to.
@@ -266,10 +305,12 @@ module Puppet::Util::Windows::Security
     owner_sid = get_owner(path)
     group_sid = get_group(path)
     well_known_world_sid = Win32::Security::SID::Everyone
+    well_known_nobody_sid = Win32::Security::SID::Nobody
 
     owner_allow = STANDARD_RIGHTS_ALL  | FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES
     group_allow = STANDARD_RIGHTS_READ | FILE_READ_ATTRIBUTES | SYNCHRONIZE
     other_allow = STANDARD_RIGHTS_READ | FILE_READ_ATTRIBUTES | SYNCHRONIZE
+    nobody_allow = 0
 
     MODE_TO_MASK.each do |k,v|
       if ((mode >> 6) & k) == k
@@ -283,10 +324,34 @@ module Puppet::Util::Windows::Security
       end
     end
 
+    if (mode & S_ISVTX).nonzero?
+      nobody_allow |= FILE_APPEND_DATA;
+    end
+
+    isdir = File.directory?(path)
+
+    if isdir
+      if (mode & (S_IWUSR | S_IXUSR)) == (S_IWUSR | S_IXUSR)
+        owner_allow |= FILE_DELETE_CHILD
+      end
+      if (mode & (S_IWGRP | S_IXGRP)) == (S_IWGRP | S_IXGRP) and (mode & S_ISVTX) == 0
+        group_allow |= FILE_DELETE_CHILD
+      end
+      if (mode & (S_IWOTH | S_IXOTH)) == (S_IWOTH | S_IXOTH) and (mode & S_ISVTX) == 0
+        other_allow |= FILE_DELETE_CHILD
+      end
+    end
+
     # if owner and group the same, then map group permissions to the one owner ACE
     isownergroup = owner_sid == group_sid
     if isownergroup
       owner_allow |= group_allow
+    end
+
+    # if any ACE allows write, then clear readonly bit, but do this before we overwrite
+    # the DACl and lose our ability to set the attribute
+    if ((owner_allow | group_allow | other_allow ) & FILE_WRITE_DATA) == FILE_WRITE_DATA
+      remove_attributes(path, FILE_ATTRIBUTE_READONLY)
     end
 
     set_acl(path, protected) do |acl|
@@ -301,19 +366,17 @@ module Puppet::Util::Windows::Security
       #puts "ace: other #{well_known_world_sid}, mask 0x#{other_allow.to_s(16)}"
       add_access_allowed_ace(acl, other_allow, well_known_world_sid)
 
+      #puts "ace: nobody #{well_known_nobody_sid}, mask 0x#{nobody_allow.to_s(16)}"
+      add_access_allowed_ace(acl, nobody_allow, well_known_nobody_sid)
+
       # add inheritable aces for child dirs and files that are created within the dir
-      if File.directory?(path)
+      if isdir
         inherit = INHERIT_ONLY_ACE | OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE
 
         add_access_allowed_ace(acl, owner_allow, Win32::Security::SID::CreatorOwner, inherit)
         add_access_allowed_ace(acl, group_allow, Win32::Security::SID::CreatorGroup, inherit)
         add_access_allowed_ace(acl, other_allow, well_known_world_sid, inherit)
       end
-    end
-
-    # if any ACE allows write, then clear readonly bit
-    if ((owner_allow | group_allow | other_allow ) & FILE_WRITE_DATA) == FILE_WRITE_DATA
-      remove_attributes(path, FILE_ATTRIBUTE_READONLY)
     end
 
     nil
@@ -331,7 +394,7 @@ module Puppet::Util::Windows::Security
             raise Puppet::Util::Windows::Error.new("Failed to initialize ACL")
           end
 
-          raise Puppet::Util::Windows::Error.new("Invalid DACL") if IsValidAcl(acl) == 0
+          raise Puppet::Util::Windows::Error.new("Invalid DACL") unless IsValidAcl(acl)
 
           yield acl
 
@@ -348,9 +411,9 @@ module Puppet::Util::Windows::Security
 
   def add_access_allowed_ace(acl, mask, sid, inherit = NO_INHERITANCE)
     string_to_sid_ptr(sid) do |sid_ptr|
-      raise Puppet::Util::Windows::Error.new("Invalid SID") if IsValidSid(sid_ptr) == 0
+      raise Puppet::Util::Windows::Error.new("Invalid SID") unless IsValidSid(sid_ptr)
 
-      if AddAccessAllowedAceEx(acl, ACL_REVISION, inherit, mask, sid_ptr) == 0
+      unless AddAccessAllowedAceEx(acl, ACL_REVISION, inherit, mask, sid_ptr)
         raise Puppet::Util::Windows::Error.new("Failed to add access control entry")
       end
     end
@@ -358,9 +421,9 @@ module Puppet::Util::Windows::Security
 
   def add_access_denied_ace(acl, mask, sid)
     string_to_sid_ptr(sid) do |sid_ptr|
-      raise Puppet::Util::Windows::Error.new("Invalid SID") if IsValidSid(sid_ptr) == 0
+      raise Puppet::Util::Windows::Error.new("Invalid SID") unless IsValidSid(sid_ptr)
 
-      if AddAccessDeniedAce(acl, ACL_REVISION, mask, sid_ptr) == 0
+      unless AddAccessDeniedAce(acl, ACL_REVISION, mask, sid_ptr)
         raise Puppet::Util::Windows::Error.new("Failed to add access control entry")
       end
     end
@@ -369,7 +432,7 @@ module Puppet::Util::Windows::Security
   def get_dacl(handle)
     get_dacl_ptr(handle) do |dacl_ptr|
       # REMIND: need to handle NULL DACL
-      raise Puppet::Util::Windows::Error.new("Invalid DACL") if IsValidAcl(dacl_ptr) == 0
+      raise Puppet::Util::Windows::Error.new("Invalid DACL") unless IsValidAcl(dacl_ptr)
 
       # ACL structure, size and count are the important parts. The
       # size includes both the ACL structure and all the ACEs.
@@ -390,7 +453,8 @@ module Puppet::Util::Windows::Security
 
       0.upto(ace_count - 1) do |i|
         ace_ptr = [0].pack('L')
-        next if GetAce(dacl_ptr, i, ace_ptr) == 0
+
+        next unless GetAce(dacl_ptr, i, ace_ptr)
 
         # ACE structures vary depending on the type. All structures
         # begin with an ACE header, which specifies the type, flags
@@ -492,9 +556,9 @@ module Puppet::Util::Windows::Security
     sid_buf = 0.chr * 256
     str_ptr = 0.chr * 4
 
-    raise Puppet::Util::Windows::Error.new("Invalid SID") if IsValidSid(psid) == 0
+    raise Puppet::Util::Windows::Error.new("Invalid SID") unless IsValidSid(psid)
 
-    raise Puppet::Util::Windows::Error.new("Failed to convert binary SID") if ConvertSidToStringSid(psid, str_ptr) == 0
+    raise Puppet::Util::Windows::Error.new("Failed to convert binary SID") unless ConvertSidToStringSid(psid, str_ptr)
 
     begin
       strncpy(sid_buf, str_ptr.unpack('L')[0], sid_buf.size - 1)
@@ -562,14 +626,14 @@ module Puppet::Util::Windows::Security
       tmpLuid = 0.chr * 8
 
       # Get the LUID for specified privilege.
-      if LookupPrivilegeValue("", privilege, tmpLuid) == 0
+      unless LookupPrivilegeValue("", privilege, tmpLuid)
         raise Puppet::Util::Windows::Error.new("Failed to lookup privilege")
       end
 
       # DWORD + [LUID + DWORD]
       tkp = [1].pack('L') + tmpLuid + [enable ? SE_PRIVILEGE_ENABLED : 0].pack('L')
 
-      if AdjustTokenPrivileges(token, 0, tkp, tkp.length , nil, nil) == 0
+      unless AdjustTokenPrivileges(token, 0, tkp, tkp.length , nil, nil)
         raise Puppet::Util::Windows::Error.new("Failed to adjust process privileges")
       end
     end
@@ -579,7 +643,7 @@ module Puppet::Util::Windows::Security
   def with_process_token(access)
     token = 0.chr * 4
 
-    if OpenProcessToken(GetCurrentProcess(), access, token) == 0
+    unless OpenProcessToken(GetCurrentProcess(), access, token)
       raise Puppet::Util::Windows::Error.new("Failed to open process token")
     end
     begin
