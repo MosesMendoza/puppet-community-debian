@@ -7,9 +7,9 @@ module Puppet
   newtype(:package) do
     @doc = "Manage packages.  There is a basic dichotomy in package
       support right now:  Some package types (e.g., yum and apt) can
-      retrieve their own package files, while others (e.g., rpm and sun) cannot.  For those package formats that cannot retrieve
-      their own files, you can use the `source` parameter to point to
-      the correct file.
+      retrieve their own package files, while others (e.g., rpm and sun)
+      cannot.  For those package formats that cannot retrieve their own files,
+      you can use the `source` parameter to point to the correct file.
 
       Puppet will automatically guess the packaging format that you are
       using based on the platform you are on, but you can override it
@@ -17,9 +17,9 @@ module Puppet
       requires in order to function, and you must meet those requirements
       to use a given provider.
 
-      **Autorequires:** If Puppet is managing the files specified as a package's
-      `adminfile`, `responsefile`, or `source`, the package resource will autorequire
-      those files."
+      **Autorequires:** If Puppet is managing the files specified as a
+      package's `adminfile`, `responsefile`, or `source`, the package
+      resource will autorequire those files."
 
     feature :installable, "The provider can install packages.",
       :methods => [:install]
@@ -48,14 +48,14 @@ module Puppet
       passed to the installer command."
 
     ensurable do
-      desc "What state the package should be in.
-        *latest* only makes sense for those packaging formats that can
-        retrieve new packages on their own and will throw an error on
-        those that cannot.  For those packaging systems that allow you
-        to specify package versions, specify them here.  Similarly,
-        *purged* is only useful for packaging systems that support
-        the notion of managing configuration files separately from
-        'normal' system files."
+      desc <<-EOT
+        What state the package should be in. On packaging systems that can
+        retrieve new packages on their own, you can choose which package to
+        retrieve by specifying a version number or `latest` as the ensure
+        value. On packaging systems that manage configuration files separately
+        from "normal" system files, you can uninstall config files by
+        specifying `purged` as the ensure value.
+      EOT
 
       attr_accessor :latest
 
@@ -196,7 +196,7 @@ module Puppet
           # object name.
           package { $ssl:
             ensure => installed,
-            alias => openssl
+            alias  => openssl
           }
 
           . etc. .
@@ -209,8 +209,8 @@ module Puppet
           # Use the alias to specify a dependency, rather than
           # having another selector to figure it out again.
           package { $ssh:
-            ensure => installed,
-            alias => openssh,
+            ensure  => installed,
+            alias   => openssh,
             require => Package[openssl]
           }
 
@@ -221,7 +221,12 @@ module Puppet
     newparam(:source) do
       desc "Where to find the actual package.  This must be a local file
         (or on a network file system) or a URL that your specific
-        packaging type understands; Puppet will not retrieve files for you."
+        packaging type understands; Puppet will not retrieve files for you,
+        although you can manage packages as `file` resources."
+
+      validate do |value|
+        provider.validate_source(value)
+      end
     end
 
     newparam(:instance) do
@@ -260,7 +265,7 @@ module Puppet
 
     newparam(:configfiles) do
       desc "Whether configfiles should be kept or replaced.  Most packages
-        types do not support this parameter."
+        types do not support this parameter. Defaults to `keep`."
 
       defaultto :keep
 
@@ -298,10 +303,6 @@ module Puppet
     newparam(:install_options, :required_features => :install_options) do
       desc "A hash of options to be handled by the provider when
         installing a package."
-    end
-
-    validate do
-      provider.validate_source(self[:source])
     end
 
     autorequire(:file) do
