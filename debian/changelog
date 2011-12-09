@@ -1,3 +1,9 @@
+puppet (2.7.8-1puppetlabs1) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
+
+  * Release 2.7.8
+
+ -- Matthaus Litteken <matthaus@puppetlabs.com>  Fri, 8 Dec 2011 17:55:27 +0000
+
 puppet (2.7.7-1puppetlabs2) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
 
   * Update dependencies. Decrease sysv-rc to 2.86 and update gbp.conf to allow multiple dists per build.
