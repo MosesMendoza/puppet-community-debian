@@ -5,13 +5,16 @@
 %global confdir conf/redhat
 
 Name:           puppet
-Version:        2.7.7
+Version:        2.7.8
+#Release:        0.1rc1%{?dist}
 Release:        1%{?dist}
 Summary:        A network tool for managing many disparate systems
 License:        ASL 2.0
 URL:            http://puppetlabs.com
 Source0:        http://puppetlabs.com/downloads/%{name}/%{name}-%{version}.tar.gz
+#Source0:        http://puppetlabs.com/downloads/%{name}/%{name}-%{version}rc1.tar.gz
 Source1:        http://puppetlabs.com/downloads/%{name}/%{name}-%{version}.tar.gz.asc
+#Source1:        http://puppetlabs.com/downloads/%{name}/%{name}-%{version}rc1.tar.gz.asc
 
 Group:          System Environment/Base
 
@@ -282,6 +285,12 @@ fi
 rm -rf %{buildroot}
 
 %changelog
+* Thu Dec 8 2011 Matthaus Litteken <matthaus@puppetlabs.com> - 2.7.8-1
+- Update for 2.7.8
+
+* Wed Nov 30 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.8-0.1rc1
+- Update for 2.7.8rc1
+
 * Mon Nov 21 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.7-1
 - Relaese 2.7.7
 
