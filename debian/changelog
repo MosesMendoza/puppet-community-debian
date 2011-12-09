@@ -1,10 +1,10 @@
-ppuppet (2.7.7-1puppetlabs2) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
+puppet (2.7.7-1puppetlabs2) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
 
   * Update dependencies. Decrease sysv-rc to 2.86 and update gbp.conf to allow multiple dists per build.
 
  -- Matthaus Litteken <matthaus@puppetlabs.com>  Fri, 2 Dec 2011 11:55:27 +0000
 
-uppet (2.7.7-1puppetlabs1) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
+puppet (2.7.7-1puppetlabs1) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
 
   * Update to 2.7.7
 
