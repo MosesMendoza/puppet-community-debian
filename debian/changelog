@@ -1,8 +1,14 @@
+puppet (2.7.9-1puppetlabs1) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
+
+  * Release 2.7.9
+
+ -- Matthaus Litteken <matthaus@puppetlabs.com>  Fri, 9 Dec 2011 20:15:27 +0000
+
 puppet (2.7.8-1puppetlabs1) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
 
   * Release 2.7.8
 
- -- Matthaus Litteken <matthaus@puppetlabs.com>  Fri, 8 Dec 2011 17:55:27 +0000
+ -- Matthaus Litteken <matthaus@puppetlabs.com>  Thu, 8 Dec 2011 17:55:27 +0000
 
 puppet (2.7.7-1puppetlabs2) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
 
