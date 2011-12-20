@@ -1,3 +1,9 @@
+puppet (2.7.9-1puppetlabs2) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
+
+  * Fix puppet-passenger post-inst to use the correct puppet commands.
+
+ -- Matthaus Litteken <matthaus@puppetlabs.com>  Tue, 20 Dec 2011 14:30:27 +0000
+
 puppet (2.7.9-1puppetlabs1) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
 
   * Release 2.7.9
