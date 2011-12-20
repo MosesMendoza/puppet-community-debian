@@ -17,19 +17,19 @@ if [ "$1" = "configure" ]; then
         # The ssl key and cert need to be available (eg generated) before
         # apache2 is configured and started since apache2 ssl configuration 
         # uses the puppetmaster ssl files.
-	if [ ! -e "$(puppetca --configprint hostcert)" ]; then
-        	puppetca --generate $(puppetca --configprint certname)
+	if [ ! -e "$(puppet master --configprint hostcert)" ]; then
+		puppet ca --generate $(puppet master --configprint certname)
 	fi
         # Setup apache2 configuration files
         APACHE2_SITE_FILE="/etc/apache2/sites-available/puppetmaster" 
         if  [ ! -e "${APACHE2_SITE_FILE}" ]; then
             cp /usr/share/puppetmaster-passenger/apache2.site.conf.tmpl "${APACHE2_SITE_FILE}"
             # Fix path to SSL files
-            sed -r -i "s|(SSLCertificateFile\s+).+$|\1$(puppet --configprint hostcert)|" "${APACHE2_SITE_FILE}"
-            sed -r -i "s|(SSLCertificateKeyFile\s+).+$|\1$(puppet --configprint hostprivkey)|" "${APACHE2_SITE_FILE}"
-            sed -r -i "s|(SSLCACertificateFile\s+).+$|\1$(puppet --configprint localcacert)|" "${APACHE2_SITE_FILE}"
-            sed -r -i "s|(SSLCertificateChainFile\s+).+$|\1$(puppet --configprint localcacert)|" "${APACHE2_SITE_FILE}"
-            sed -r -i "s|(SSLCARevocationFile\s+).+$|\1$(puppet --configprint cacrl)|" "${APACHE2_SITE_FILE}"
+            sed -r -i "s|(SSLCertificateFile\s+).+$|\1$(puppet master --configprint hostcert)|" "${APACHE2_SITE_FILE}"
+            sed -r -i "s|(SSLCertificateKeyFile\s+).+$|\1$(puppet master --configprint hostprivkey)|" "${APACHE2_SITE_FILE}"
+            sed -r -i "s|(SSLCACertificateFile\s+).+$|\1$(puppet master --configprint localcacert)|" "${APACHE2_SITE_FILE}"
+            sed -r -i "s|(SSLCertificateChainFile\s+).+$|\1$(puppet master --configprint localcacert)|" "${APACHE2_SITE_FILE}"
+            sed -r -i "s|(SSLCARevocationFile\s+).+$|\1$(puppet master --configprint cacrl)|" "${APACHE2_SITE_FILE}"
         fi
         a2enmod ssl
         a2ensite puppetmaster
