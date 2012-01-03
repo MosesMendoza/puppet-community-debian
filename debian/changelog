@@ -1,3 +1,9 @@
+puppet (2.7.9-1puppetlabs3) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
+
+	* (#11509, #11656) Fix puppetmaster-passenger to set up puppet ca with passenger correctly.
+
+ -- Matthaus Litteken <matthaus@puppetlabs.com>  Tue, 2 Jan 2011 9:25:27 +0000
+
 puppet (2.7.9-1puppetlabs2) hardy jaunty karmic lucid maverick natty oneiric unstable lenny sid squeeze wheezy; urgency=low
 
   * Fix puppet-passenger post-inst to use the correct puppet commands.

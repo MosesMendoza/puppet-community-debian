@@ -18,7 +18,7 @@ if [ "$1" = "configure" ]; then
         # apache2 is configured and started since apache2 ssl configuration 
         # uses the puppetmaster ssl files.
 	if [ ! -e "$(puppet master --configprint hostcert)" ]; then
-		puppet ca --generate $(puppet master --configprint certname)
+		puppet cert generate $(puppet master --configprint certname)
 	fi
         # Setup apache2 configuration files
         APACHE2_SITE_FILE="/etc/apache2/sites-available/puppetmaster" 
@@ -30,6 +30,10 @@ if [ "$1" = "configure" ]; then
             sed -r -i "s|(SSLCACertificateFile\s+).+$|\1$(puppet master --configprint localcacert)|" "${APACHE2_SITE_FILE}"
             sed -r -i "s|(SSLCertificateChainFile\s+).+$|\1$(puppet master --configprint localcacert)|" "${APACHE2_SITE_FILE}"
             sed -r -i "s|(SSLCARevocationFile\s+).+$|\1$(puppet master --configprint cacrl)|" "${APACHE2_SITE_FILE}"
+
+            # Fix path to rack docroot and directory
+            sed -r -i "s|DocumentRoot /etc/puppet/rack/public|DocumentRoot /usr/share/puppet/rack/puppetmasterd/public|g" "${APACHE2_SITE_FILE}"
+            sed -r -i "s|<Directory /etc/puppet/rack/>|<Directory /usr/share/puppet/rack/puppetmasterd/>|g" "${APACHE2_SITE_FILE}"
         fi
         a2enmod ssl
         a2ensite puppetmaster
