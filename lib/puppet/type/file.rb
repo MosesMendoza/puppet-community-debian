@@ -9,11 +9,14 @@ require 'puppet/network/handler'
 require 'puppet/util/diff'
 require 'puppet/util/checksums'
 require 'puppet/util/backups'
+require 'puppet/util/symbolic_file_mode'
 
 Puppet::Type.newtype(:file) do
   include Puppet::Util::MethodHelper
   include Puppet::Util::Checksums
   include Puppet::Util::Backups
+  include Puppet::Util::SymbolicFileMode
+
   @doc = "Manages local files, including setting ownership and
     permissions, creation of both files and directories, and
     retrieving entire files from remote servers.  As Puppet matures, it
@@ -261,13 +264,18 @@ Puppet::Type.newtype(:file) do
 
   # Autorequire the nearest ancestor directory found in the catalog.
   autorequire(:file) do
+    req = []
     path = Pathname.new(self[:path])
     if !path.root?
       # Start at our parent, to avoid autorequiring ourself
       parents = path.parent.enum_for(:ascend)
-      found = parents.find { |p| catalog.resource(:file, p.to_s) }
-      found and found.to_s
+      if found = parents.find { |p| catalog.resource(:file, p.to_s) }
+        req << found.to_s
+      end
     end
+    # if the resource is a link, make sure the target is created first
+    req << self[:target] if self[:target]
+    req
   end
 
   # Autorequire the owner and group of the file.
@@ -729,7 +737,7 @@ Puppet::Type.newtype(:file) do
 
     mode = self.should(:mode) # might be nil
     umask = mode ? 000 : 022
-    mode_int = mode ? mode.to_i(8) : nil
+    mode_int = mode ? symbolic_mode_to_int(mode, 0644) : nil
 
     content_checksum = Puppet::Util.withumask(umask) { ::File.open(path, 'wb', mode_int ) { |f| write_content(f) } }
 
