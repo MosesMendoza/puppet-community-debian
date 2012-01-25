@@ -100,6 +100,7 @@ class Puppet::Transaction
       if resource.is_a?(Puppet::Type::Component)
         Puppet.warning "Somehow left a component in the relationship graph"
       else
+        resource.info "Starting to evaluate the resource" if Puppet[:evaltrace] and @catalog.host_config?
         seconds = thinmark { eval_resource(resource) }
         resource.info "Evaluated in %0.2f seconds" % seconds if Puppet[:evaltrace] and @catalog.host_config?
       end
@@ -317,10 +318,6 @@ class Puppet::Transaction
       @blockers = {}
       @unguessable_deterministic_key = Hash.new { |h,k| h[k] = Digest::SHA1.hexdigest("NaCl, MgSO4 (salts) and then #{k.ref}") }
       @providerless_types = []
-      vertices.each do |v|
-        blockers[v] = direct_dependencies_of(v).length
-        enqueue(v) if blockers[v] == 0
-      end
     end
     def method_missing(*args,&block)
       real_graph.send(*args,&block)
@@ -334,6 +331,13 @@ class Puppet::Transaction
       ready.delete(key)
 
       real_graph.add_edge(f,t,label)
+    end
+    # Enqueue the initial set of resources, those with no dependencies.
+    def enqueue_roots
+      vertices.each do |v|
+        blockers[v] = direct_dependencies_of(v).length
+        enqueue(v) if blockers[v] == 0
+      end
     end
     # Decrement the blocker count for the resource by 1. If the number of
     # blockers is unknown, count them and THEN decrement by 1.
@@ -363,6 +367,8 @@ class Puppet::Transaction
     end
     def traverse(&block)
       real_graph.report_cycles_in_graph
+
+      enqueue_roots
 
       deferred_resources = []
 

@@ -500,8 +500,9 @@ describe Puppet::Type.type(:file) do
     end
 
     it "should not copy values to the child which were set by the source" do
-      file[:source] = File.expand_path(__FILE__)
-      metadata = stub 'metadata', :owner => "root", :group => "root", :mode => 0755, :ftype => "file", :checksum => "{md5}whatever"
+      source = File.expand_path(__FILE__)
+      file[:source] = source
+      metadata = stub 'metadata', :owner => "root", :group => "root", :mode => 0755, :ftype => "file", :checksum => "{md5}whatever", :source => source
       file.parameter(:source).stubs(:metadata).returns metadata
 
       file.parameter(:source).copy_source_values
@@ -841,7 +842,7 @@ describe Puppet::Type.type(:file) do
     describe "and multiple sources are provided" do
       let(:sources) do
         h = {}
-        %w{/one /two /three /four}.each do |key|
+        %w{/a /b /c /d}.each do |key|
           h[key] = URI.unescape(Puppet::Util.path_to_uri(File.expand_path(key)).to_s)
         end
         h
@@ -850,11 +851,11 @@ describe Puppet::Type.type(:file) do
       describe "and :sourceselect is set to :first" do
         it "should create file instances for the results for the first source to return any values" do
           data = Puppet::FileServing::Metadata.new("/whatever", :relative_path => "foobar")
-          file[:source] = sources.keys.map { |key| File.expand_path(key) }
-          file.expects(:perform_recursion).with(sources['/one']).returns nil
-          file.expects(:perform_recursion).with(sources['/two']).returns []
-          file.expects(:perform_recursion).with(sources['/three']).returns [data]
-          file.expects(:perform_recursion).with(sources['/four']).never
+          file[:source] = sources.keys.sort.map { |key| File.expand_path(key) }
+          file.expects(:perform_recursion).with(sources['/a']).returns nil
+          file.expects(:perform_recursion).with(sources['/b']).returns []
+          file.expects(:perform_recursion).with(sources['/c']).returns [data]
+          file.expects(:perform_recursion).with(sources['/d']).never
           file.expects(:newchild).with("foobar").returns @resource
           file.recurse_remote({})
         end
@@ -867,22 +868,22 @@ describe Puppet::Type.type(:file) do
 
         it "should return every found file that is not in a previous source" do
           klass = Puppet::FileServing::Metadata
-          file[:source] = %w{/one /two /three /four}.map {|f| File.expand_path(f) }
+          file[:source] = %w{/a /b /c /d}.map {|f| File.expand_path(f) }
           file.stubs(:newchild).returns @resource
 
-          one = [klass.new("/one", :relative_path => "a")]
-          file.expects(:perform_recursion).with(sources['/one']).returns one
+          one = [klass.new("/a", :relative_path => "a")]
+          file.expects(:perform_recursion).with(sources['/a']).returns one
           file.expects(:newchild).with("a").returns @resource
 
-          two = [klass.new("/two", :relative_path => "a"), klass.new("/two", :relative_path => "b")]
-          file.expects(:perform_recursion).with(sources['/two']).returns two
+          two = [klass.new("/b", :relative_path => "a"), klass.new("/b", :relative_path => "b")]
+          file.expects(:perform_recursion).with(sources['/b']).returns two
           file.expects(:newchild).with("b").returns @resource
 
-          three = [klass.new("/three", :relative_path => "a"), klass.new("/three", :relative_path => "c")]
-          file.expects(:perform_recursion).with(sources['/three']).returns three
+          three = [klass.new("/c", :relative_path => "a"), klass.new("/c", :relative_path => "c")]
+          file.expects(:perform_recursion).with(sources['/c']).returns three
           file.expects(:newchild).with("c").returns @resource
 
-          file.expects(:perform_recursion).with(sources['/four']).returns []
+          file.expects(:perform_recursion).with(sources['/d']).returns []
 
           file.recurse_remote({})
         end
@@ -1253,6 +1254,36 @@ describe Puppet::Type.type(:file) do
   end
 
   describe "when autorequiring" do
+    describe "target" do
+      it "should require file resource when specified with the target property" do
+        file = described_class.new(:path => File.expand_path("/foo"), :ensure => :directory)
+        link = described_class.new(:path => File.expand_path("/bar"), :ensure => :symlink, :target => File.expand_path("/foo"))
+        catalog.add_resource file
+        catalog.add_resource link
+        reqs = link.autorequire
+        reqs.size.must == 1
+        reqs[0].source.must == file
+        reqs[0].target.must == link
+      end
+
+      it "should require file resource when specified with the ensure property" do
+        file = described_class.new(:path => File.expand_path("/foo"), :ensure => :directory)
+        link = described_class.new(:path => File.expand_path("/bar"), :ensure => File.expand_path("/foo"))
+        catalog.add_resource file
+        catalog.add_resource link
+        reqs = link.autorequire
+        reqs.size.must == 1
+        reqs[0].source.must == file
+        reqs[0].target.must == link
+      end
+
+      it "should not require target if target is not managed" do
+        link = described_class.new(:path => File.expand_path('/foo'), :ensure => :symlink, :target => '/bar')
+        catalog.add_resource link
+        link.autorequire.size.should == 0
+      end
+    end
+
     describe "directories" do
       it "should autorequire its parent directory" do
         dir = described_class.new(:path => File.dirname(path))

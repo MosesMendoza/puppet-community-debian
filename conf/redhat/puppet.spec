@@ -5,7 +5,7 @@
 %global confdir conf/redhat
 
 Name:           puppet
-Version:        2.7.9
+Version:        2.7.10
 #Release:        0.1rc1%{?dist}
 Release:        1%{?dist}
 Summary:        A network tool for managing many disparate systems
@@ -285,6 +285,9 @@ fi
 rm -rf %{buildroot}
 
 %changelog
+* Wed Jan 25 2012 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.10-1
+- Update for 2.7.10
+
 * Fri Dec 9 2011 Matthaus Litteken <matthaus@puppetlabs.com> - 2.7.9-1
 - Update for 2.7.9
 
@@ -324,6 +327,12 @@ rm -rf %{buildroot}
 
 * Wed Jul 06 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.7.2-0.1.rc1
 - Update to 2.7.2rc1
+
+* Mon Dec 12 2011 Matthaus Litteken <matthaus@puppetlabs.com> - 2.6.13-1
+- Release of 2.6.13
+
+* Fri Oct 21 2011 Michael Stahnke <stahnma@puppetlabs.com> - 2.6.12-1
+- CVE-2011-3872 fixes
 
 * Wed Jun 15 2011 Todd Zullinger <tmz@pobox.com> - 2.6.9-0.1.rc1
 - Update rc versioning to ensure 2.6.9 final is newer to rpm
